@@ -27,6 +27,8 @@ python -m Lab01.src.predict --model logistic_regression --text "Congratulations!
 
 CLI trả `model`, `label` và `spam_probability` cho Logistic Regression. Xác suất từ 0,5 trở lên được gán `spam`. Có thể dùng `--model svm` để xem `decision_score` và `threshold`, hoặc `--model naive_bayes` để xem nhãn.
 
+Để khám phá CSV gốc, chạy `python -m Lab01.src.eda`. Bảng thống kê và biểu đồ nằm trong [result/eda/](result/eda/).
+
 ## Đầu ra
 
 | Nội dung | Vị trí |

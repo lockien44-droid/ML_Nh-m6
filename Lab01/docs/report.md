@@ -4,6 +4,12 @@
 
 Phân loại email thành `ham` (email thường, nhãn `0`) hoặc `spam` (nhãn `1`). Tệp [spam_ham_dataset.csv](../Data/raw/spam_ham_dataset.csv) có 5.171 email. Quy trình dùng `text` làm đầu vào và `label_num` làm nhãn. CSV không có cột riêng cho người gửi hoặc người nhận.
 
+## Khám phá dữ liệu
+
+Chạy `python -m Lab01.src.eda` từ thư mục gốc. CSV gốc có 3.672 ham (71,01%) và 1.499 spam (28,99%). Không có văn bản rỗng hoặc nhãn ngoài 0 và 1. Có 178 dòng trùng nội dung gốc. Bước tiền xử lý phát hiện thêm các trường hợp trùng sau khi chuẩn hóa văn bản.
+
+Trên dữ liệu gốc, trung vị số từ tách bằng khoảng trắng là 123 cho ham và 114 cho spam. Trung bình mỗi email spam có 1,64 dấu chấm than, so với 0,32 ở ham. Số dấu hiệu URL trung bình lần lượt là 1,03 và 0,11. Đây là thống kê mô tả theo lớp. Xem [bảng đặc trưng](../result/eda/features_by_label.csv) và [biểu đồ](../result/eda/overview.png).
+
 ## Tiền xử lý
 
 Chạy từ thư mục gốc bằng `python -m Lab01.src.preprocessing`. Toàn bộ quy trình nằm trong [preprocessing.py](../src/preprocessing.py).
