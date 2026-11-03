@@ -4,7 +4,7 @@ Lab01 so sánh ba mô hình tự cài đặt trên cùng đặc trưng TF-IDF d�
 
 ## Chạy nhanh
 
-Mở PowerShell ở thư mục gốc repository. Lần chạy đối chiếu dùng Python 3.13.9. Dữ liệu nằm trong [spam_ham_dataset.csv](Data/spam_ham_dataset.csv).
+Mở PowerShell ở thư mục gốc repository. Lần chạy đối chiếu dùng Python 3.13.9. Dữ liệu nằm trong [spam_ham_dataset.csv](Data/raw/spam_ham_dataset.csv).
 
 Nếu muốn tách thư viện khỏi Python đang dùng, tạo và kích hoạt môi trường ảo trước khi cài đặt.
 
@@ -31,7 +31,7 @@ CLI trả `model`, `label` và `spam_probability` cho Logistic Regression. Xác 
 
 | Nội dung | Vị trí |
 |---|---|
-| Các bước tiền xử lý và TF-IDF | [result/preprocessing/](result/preprocessing/) |
+| Các bước tiền xử lý và TF-IDF | [Data/preprocessing/](Data/preprocessing/) |
 | Bảng tổng hợp ba mô hình | [metrics.csv](result/comparison/metrics.csv) |
 | Dự đoán từng email | [Logistic Regression](result/logistic_regression/predictions.csv), [SVM](result/svm/predictions.csv), [Naive Bayes](result/naive_bayes/predictions.csv) |
 | Ma trận nhầm lẫn | [Logistic Regression](result/logistic_regression/confusion_matrix.png), [SVM](result/svm/confusion_matrix.png), [Naive Bayes](result/naive_bayes/confusion_matrix.png) |

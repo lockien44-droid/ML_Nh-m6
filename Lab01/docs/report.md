@@ -2,7 +2,7 @@
 
 ## Mục tiêu và dữ liệu
 
-Phân loại email thành `ham` (email thường, nhãn `0`) hoặc `spam` (nhãn `1`). Tệp [spam_ham_dataset.csv](../Data/spam_ham_dataset.csv) có 5.171 email. Quy trình dùng `text` làm đầu vào và `label_num` làm nhãn. CSV không có cột riêng cho người gửi hoặc người nhận.
+Phân loại email thành `ham` (email thường, nhãn `0`) hoặc `spam` (nhãn `1`). Tệp [spam_ham_dataset.csv](../Data/raw/spam_ham_dataset.csv) có 5.171 email. Quy trình dùng `text` làm đầu vào và `label_num` làm nhãn. CSV không có cột riêng cho người gửi hoặc người nhận.
 
 ## Tiền xử lý
 
@@ -21,11 +21,11 @@ Chạy từ thư mục gốc bằng `python -m Lab01.src.preprocessing`. Toàn b
 
 Lần chạy hiện tại loại 287 email trùng sau làm sạch. Không có dòng không hợp lệ, văn bản sạch rỗng hoặc nhãn xung đột. Hai tập không có văn bản sạch trùng nhau.
 
-Các CSV trung gian, ma trận CSR `.npz`, nhãn và danh sách đặc trưng được lưu trong `result/preprocessing/`. Tệp [summary.json](../result/preprocessing/summary.json) ghi số liệu của lần chạy. Bộ TF-IDF đã học được lưu tại `models/tfidf_vectorizer.joblib`.
+Các CSV trung gian, ma trận CSR `.npz`, nhãn và danh sách đặc trưng được lưu trong `Data/preprocessing/`. Tệp [summary.json](../Data/preprocessing/summary.json) ghi số liệu của lần chạy. Bộ TF-IDF đã học được lưu tại `models/tfidf_vectorizer.joblib`.
 
 ## Đặc trưng đầu vào
 
-Ba thuật toán dùng chung vector TF-IDF tạo từ cột `text` sau khi làm sạch. Mỗi cột của ma trận tương ứng với một từ hoặc cụm hai từ. Trọng số TF-IDF kết hợp tần suất xuất hiện của từ hoặc cụm từ trong email với độ hiếm của nó trong tập huấn luyện. Sau đó, vector của mỗi email được chuẩn hóa L2. Lần chạy hiện tại có 50.000 đặc trưng. Danh sách cột theo đúng thứ tự được lưu trong [feature_names.csv](../result/preprocessing/09_tfidf/feature_names.csv).
+Ba thuật toán dùng chung vector TF-IDF tạo từ cột `text` sau khi làm sạch. Mỗi cột của ma trận tương ứng với một từ hoặc cụm hai từ. Trọng số TF-IDF kết hợp tần suất xuất hiện của từ hoặc cụm từ trong email với độ hiếm của nó trong tập huấn luyện. Sau đó, vector của mỗi email được chuẩn hóa L2. Lần chạy hiện tại có 50.000 đặc trưng. Danh sách cột theo đúng thứ tự được lưu trong [feature_names.csv](../Data/preprocessing/09_tfidf/feature_names.csv).
 
 | Đặc trưng trong đề bài | Cách sử dụng hiện tại |
 |---|---|

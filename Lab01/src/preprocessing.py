@@ -12,6 +12,7 @@ from sklearn.feature_extraction.text import ENGLISH_STOP_WORDS, TfidfVectorizer
 from sklearn.model_selection import train_test_split
 
 LAB_DIR = Path(__file__).resolve().parents[1]
+PREPROCESSING_DIR = LAB_DIR / "Data" / "preprocessing"
 
 
 def load_data(csv_path):
@@ -73,8 +74,8 @@ def build_vectorizer():
 
 
 def prepare_data(
-    csv_path=LAB_DIR / "Data" / "spam_ham_dataset.csv",
-    result_dir=LAB_DIR / "result" / "preprocessing",
+    csv_path=LAB_DIR / "Data" / "raw" / "spam_ham_dataset.csv",
+    result_dir=PREPROCESSING_DIR,
     model_dir=LAB_DIR / "models",
 ):
     """Save intermediate results and return X_train, X_test, y_train, y_test."""

@@ -7,7 +7,7 @@ from scipy.sparse import isspmatrix_csr
 
 from ..algorithms import LinearSVM, LogisticRegression, MultinomialNaiveBayes
 from .evaluate import evaluate
-from .preprocessing import LAB_DIR, prepare_data
+from .preprocessing import LAB_DIR, PREPROCESSING_DIR, prepare_data
 from .tuning import select_models, trace_fit
 
 
@@ -15,7 +15,7 @@ def main():
     result_dir = LAB_DIR / "result"
     model_dir = LAB_DIR / "models"
     X_train, X_test, y_train, y_test = prepare_data()
-    prep = result_dir / "preprocessing"
+    prep = PREPROCESSING_DIR
     train, test = (pd.read_csv(prep / "08_normalize_whitespace" / f"{split}.csv", keep_default_na=False)
                    for split in ("train", "test"))
     for features, labels, frame, split in ((X_train, y_train, train, "train"), (X_test, y_test, test, "test")):
