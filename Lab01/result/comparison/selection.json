@@ -1,0 +1,23 @@
+{
+  "seed": 43,
+  "validation_fraction": 0.2,
+  "subtrain_counts": {
+    "0": 2192,
+    "1": 933
+  },
+  "validation_counts": {
+    "0": 549,
+    "1": 233
+  },
+  "selected": {
+    "logistic_regression": {
+      "learning_rate": 5.0,
+      "n_iterations": 1000
+    },
+    "svm": {
+      "learning_rate": 0.01,
+      "n_iterations": 3000,
+      "C": 100
+    }
+  }
+}

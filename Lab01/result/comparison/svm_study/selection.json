@@ -1,0 +1,30 @@
+{
+  "spam_prevalence": 0.2979539641943734,
+  "selected": {
+    "group": "B",
+    "model": "unweighted",
+    "learning_rate": 0.01,
+    "n_iterations": 3000,
+    "C": 100,
+    "class_weight": null,
+    "average_precision": 0.9873028573457385,
+    "threshold": -0.6620115722742366,
+    "macro_f1": 0.9832906956641667,
+    "spam_precision": 0.9663865546218487,
+    "spam_recall": 0.9871244635193133,
+    "spam_f1": 0.9766454352441614,
+    "fn": 3,
+    "fp": 8,
+    "predicted_spam": 238,
+    "confusion_matrix": [
+      [
+        541,
+        8
+      ],
+      [
+        3,
+        230
+      ]
+    ]
+  }
+}
