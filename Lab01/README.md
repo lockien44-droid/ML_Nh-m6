@@ -1,52 +1,81 @@
 # Lab01 — Phân loại email spam
 
-Lab01 so sánh ba mô hình tự cài đặt trên cùng đặc trưng TF-IDF dạng thưa gồm Logistic Regression, Linear SVM và Multinomial Naive Bayes. Nhãn `0` là ham và `1` là spam.
+Lab01 dùng TF-IDF và ba mô hình tự cài đặt để phân loại email thành ham (0) hoặc spam (1). Xem [báo cáo Lab01](docs/report.md) để đọc phương pháp, cấu hình và phân tích lỗi.
 
 ## Chạy nhanh
 
-Mở PowerShell ở thư mục gốc repository. Lần chạy đối chiếu dùng Python 3.13.9. Đặt hoặc giữ CSV đầu vào tại [Lab01/Data/raw/spam_ham_dataset.csv](Data/raw/spam_ham_dataset.csv).
-
-Nếu muốn tách thư viện khỏi Python đang dùng, tạo và kích hoạt môi trường ảo trước khi cài đặt.
-
-```powershell
-python -m venv .venv
-. .\.venv\Scripts\Activate.ps1
-```
+Mở PowerShell tại thư mục gốc repository. Cài thư viện rồi chạy huấn luyện.
 
 ```powershell
 python -m pip install -r requirements.txt
 python -m Lab01.src.train
 ```
 
-Chạy theo thứ tự cài thư viện, huấn luyện, rồi dự đoán. Một lần chạy `train` thực hiện tiền xử lý, đánh giá baseline mặc định, chọn cấu hình trên validation, fit lại và lưu cả ba mô hình cuối. Cả hai nhóm kết quả được sinh trong cùng lần chạy, không cần tham số riêng. Để chỉ xem đầu ra tiền xử lý trước khi huấn luyện, có thể chạy `python -m Lab01.src.preprocessing`.
+Lệnh huấn luyện làm sạch và loại trùng, chia train/test, tạo TF-IDF, chạy baseline, chọn cấu hình trên validation, rồi fit lại và đánh giá mô hình cuối. Để xem từng bước tiền xử lý, chạy ba lệnh theo thứ tự sau.
+
+```powershell
+python -m Lab01.src.preprocessing
+python -m Lab01.src.preprocessing --split
+python -m Lab01.src.preprocessing --tfidf
+```
+
+Sau khi huấn luyện, chạy thử một email thường và một email nhận thưởng.
 
 ```powershell
 python -m Lab01.src.predict --model logistic_regression --text "Please review the attached agenda for tomorrow team meeting"
 python -m Lab01.src.predict --model logistic_regression --text "Congratulations! Claim your free cash prize now"
 ```
 
-CLI trả `model`, `label` và `spam_probability` cho Logistic Regression. Xác suất từ 0,5 trở lên được gán `spam`. Có thể dùng `--model svm` để xem `decision_score` và `threshold`, hoặc `--model naive_bayes` để xem nhãn.
+Có thể đổi `--model` thành `svm` hoặc `naive_bayes`. Mô hình cuối và vectorizer được sinh trong `Lab01/models/`.
 
-Để khám phá CSV gốc, chạy `python -m Lab01.src.eda`. Bảng thống kê và biểu đồ nằm trong [result/eda/](result/eda/).
+## Theo dõi từng lần huấn luyện
 
-SVM hiện tại dùng C=100 và ngưỡng khoảng −0,662. Mốc C=100, ngưỡng 0 trên test trong báo cáo là kết quả lịch sử. Lệnh hiện tại ghi mốc ngưỡng 0 trên validation trong [bảng thử SVM](result/comparison/svm_study/validation.csv).
+`python -m Lab01.src.train` in đường dẫn `Lab01/result/runs/<run_id>/`. Mỗi lần chạy có mã riêng và lưu các đầu ra của chính nó.
 
-## Tài liệu mã nguồn
+| Tệp hoặc thư mục trong lượt chạy | Nội dung |
+|---|---|
+| `run.json` và `events.jsonl` | Trạng thái, thời gian, SHA-256 của CSV đầu vào và nhật ký các giai đoạn |
+| `preprocessing/` | Dữ liệu sạch, train/test, TF-IDF, nhãn và thống kê |
+| `figures/` | Biểu đồ số dòng qua làm sạch, phân bố nhãn train/test và tỷ lệ ô TF-IDF khác 0 |
+| `evaluation/` | Baseline, thử tham số, kết quả test và ma trận nhầm lẫn |
+| `models/` | Ba mô hình cuối và bộ TF-IDF của lượt chạy |
 
-- [Luồng xử lý và các tệp trong src](docs/src.md)
-- [Các class thuật toán](docs/algorithms.md)
-- [Báo cáo kết quả và phân tích lỗi](docs/report.md)
+Sau khi đánh giá xong, chương trình sao chép đầu ra sang các vị trí quen thuộc để lệnh dự đoán và liên kết báo cáo tiếp tục dùng được. Khi so sánh nhiều lần chạy, mở thư mục theo `run_id`. Git bỏ qua các bản lưu theo lượt vì chúng chứa cả ma trận và mô hình.
+
+## Báo cáo tự động
+
+Lệnh huấn luyện xuất báo cáo Markdown, HTML và PDF trong `Lab01/reports/`. Mỗi báo cáo lấy số liệu từ lượt chạy tương ứng. Các báo cáo cũ chuyển sang `archive/`, còn hình theo lượt nằm ở `figures/<run_id>/{eda,preprocessing,training,evaluation}/`.
+
+| Tệp | Nội dung |
+|---|---|
+| `metrics_summary.csv` | Kết quả test của ba mô hình, có `Run_ID` để so sánh giữa các lần chạy |
+| `inference_history.csv` | Thời gian, mô hình, nhãn và điểm của mỗi lần chạy `predict.py`; không lưu nội dung email |
+| `label_distribution.csv` | Số lượng và tỷ lệ nhãn của dữ liệu gốc từ EDA |
+| `lr_threshold_comparison.csv` | So sánh năm ngưỡng LR trên validation. Ngưỡng triển khai vẫn là 0,5 |
+
+Nếu cần tạo lại báo cáo từ một lượt đã hoàn tất và có `evaluation/comparison/training.csv`, chạy:
+
+```powershell
+python -m Lab01.src.report --run-id <run_id>
+```
+
+Mở trực tiếp tệp HTML hoặc PDF khi demo. Bốn ảnh ma trận ở gốc `reports/` là bản tương thích của lượt vừa xuất báo cáo.
+
+## Tài liệu Lab01
+
+- [Mô tả hệ thống và kết quả](docs/Lab01_descript.md)
+- [Giải thích tham số](docs/ReadmeForParameters.md)
+- [Lịch sử thực nghiệm](docs/experiment_logs.csv)
+- [Báo cáo chi tiết](docs/report.md)
 
 ## Đầu ra
 
-| Nội dung | Vị trí |
+| Nội dung | Tệp |
 |---|---|
-| Các bước tiền xử lý và TF-IDF | [Data/preprocessing/](Data/preprocessing/) |
-| Tóm tắt tiền xử lý | [preprocessing_summary.md](reports/preprocessing_summary.md) |
-| Tóm tắt huấn luyện | [training_summary.md](reports/training_summary.md) |
-| Baseline mặc định | [baseline.csv](result/comparison/baseline.csv) và [chi tiết theo mô hình](result/comparison/baseline/) |
-| Bảng tổng hợp cấu hình hiện tại | [metrics.csv](result/comparison/metrics.csv) |
-| Dự đoán từng email | [Logistic Regression](result/logistic_regression/predictions.csv), [SVM](result/svm/predictions.csv), [Naive Bayes](result/naive_bayes/predictions.csv) |
-| Ma trận nhầm lẫn | [Logistic Regression](result/logistic_regression/confusion_matrix.png), [SVM](result/svm/confusion_matrix.png), [Naive Bayes](result/naive_bayes/confusion_matrix.png) |
-| Mô hình và vectorizer sinh sau khi train | `models/`, gồm `logistic_regression.joblib`, `svm.joblib`, `naive_bayes.joblib` và `tfidf_vectorizer.joblib` |
-| Phương pháp, kết quả và phân tích lỗi | [Báo cáo Lab01](docs/report.md) |
+| Dữ liệu sạch và tập chia | [cleaned_raw.csv](Data/preprocessing/cleaned_raw.csv), [train_clean.csv](Data/preprocessing/train_clean.csv), [test_clean.csv](Data/preprocessing/test_clean.csv) |
+| TF-IDF, nhãn và tên đặc trưng | [09_tfidf/](Data/preprocessing/09_tfidf/) |
+| Baseline | [baseline.csv](result/comparison/baseline.csv) |
+| Cấu hình và ngưỡng chọn | [selection.json](result/comparison/selection.json), [ngưỡng SVM](result/comparison/svm_study/selection.json) |
+| Kết quả test | [metrics.csv](result/comparison/metrics.csv) |
+
+Chạy `python -m Lab01.src.eda` để khảo sát dữ liệu gốc và tạo biểu đồ tổng quan tại `result/eda/overview.png`. Xem [ảnh phân bố nhãn trong tài liệu](docs/images/label_distribution.png).

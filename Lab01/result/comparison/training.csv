@@ -1,0 +1,4 @@
+model,fit_seconds,learning_rate,n_iterations,C,alpha,threshold
+logistic_regression,5.313971499999752,5.0,1000.0,,,
+svm,7.902811299980385,0.01,3000.0,100.0,,-0.6620115722742366
+naive_bayes,0.005361400020774454,,,,1.0,

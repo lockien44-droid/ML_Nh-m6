@@ -1,0 +1,37 @@
+{
+  "split": {
+    "test_size": 0.2,
+    "random_state": 42,
+    "stratified": true
+  },
+  "tfidf": {
+    "max_features": 50000,
+    "ngram_range": [
+      1,
+      2
+    ],
+    "norm": "l2"
+  },
+  "sets": {
+    "train": {
+      "ham": 2741,
+      "spam": 1166,
+      "shape": [
+        3907,
+        50000
+      ],
+      "nonzero": 387045,
+      "density_percent": 0.19812899923214744
+    },
+    "test": {
+      "ham": 686,
+      "spam": 291,
+      "shape": [
+        977,
+        50000
+      ],
+      "nonzero": 86379,
+      "density_percent": 0.17682497441146366
+    }
+  }
+}

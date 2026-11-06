@@ -1,5 +1,4 @@
-"""Prepare email data. Run with python -m Lab01.src.preprocessing."""
-
+import argparse
 import json
 import re
 from html import unescape
@@ -12,133 +11,116 @@ from sklearn.feature_extraction.text import ENGLISH_STOP_WORDS, TfidfVectorizer
 from sklearn.model_selection import train_test_split
 
 LAB_DIR = Path(__file__).resolve().parents[1]
-PREPROCESSING_DIR = LAB_DIR / "Data" / "preprocessing"
-
-
-def load_data(csv_path):
-    raw = pd.read_csv(csv_path, keep_default_na=False)
-    if not {"text", "label_num"}.issubset(raw.columns):
-        raise ValueError("CSV phải có hai cột text và label_num.")
-
-    labels = pd.to_numeric(raw["label_num"], errors="coerce")
-    valid = raw["text"].map(lambda value: isinstance(value, str) and bool(value.strip()))
-    valid &= labels.isin([0, 1])
-    data = raw.loc[valid, ["text"]].copy()
-    data.insert(0, "email_id", data.index)
-    data["label_num"] = labels.loc[valid].astype(int)
-    return data.reset_index(drop=True), len(raw)
-
-
-def remove_html(text):
-    text = unescape(text)
-    text = re.sub(r"<!--.*?-->|<(script|style)\b[^>]*>.*?</\1\s*>", " ", text, flags=re.I | re.S)
-    return re.sub(r"</?[a-zA-Z][\w:-]*(?:\s[^<>]*)?\s*/?>", " ", text)
-
-
-def remove_punctuation(text):
-    return re.sub(r"[^\w\s]|_", " ", text)
-
-
-def remove_stopwords(text):
-    return re.sub(r"\b\w+\b", lambda match: "" if match[0] in ENGLISH_STOP_WORDS else match[0], text)
-
-
-def normalize_whitespace(text):
-    return " ".join(text.split())
-
-
-CLEANING_STEPS = (
-    ("04_remove_html", remove_html),
-    ("05_lowercase", str.lower),
-    ("06_remove_punctuation", remove_punctuation),
-    ("07_remove_stopwords", remove_stopwords),
-    ("08_normalize_whitespace", normalize_whitespace),
-)
+DATA_DIR = LAB_DIR / "Data"
+PREPROCESSING_DIR = DATA_DIR / "preprocessing"
 
 
 def clean_text(text):
-    """Apply the same steps used during training to a new email."""
-    for _, transform in CLEANING_STEPS:
-        text = transform(text)
-    return text
+    text = unescape(text)
+    text = re.sub(r"<!--.*?-->|<(script|style)\b[^>]*>.*?</\1\s*>", " ", text, flags=re.I | re.S)
+    text = re.sub(r"</?[a-zA-Z][\w:-]*(?:\s[^<>]*)?\s*/?>", " ", text)
+    text = re.sub(r"[^\w\s]|_", " ", text.lower())
+    return " ".join(word for word in text.split() if word not in ENGLISH_STOP_WORDS)
 
 
-def save_split(train, test, directory):
-    directory.mkdir(parents=True, exist_ok=True)
-    train.to_csv(directory / "train.csv", index=False)
-    test.to_csv(directory / "test.csv", index=False)
+def main(output_dir=PREPROCESSING_DIR):
+    raw = pd.read_csv(DATA_DIR / "raw/spam_ham_dataset.csv", keep_default_na=False)
+    labels = pd.to_numeric(raw["label_num"], errors="coerce")
+    valid = raw["text"].map(lambda text: isinstance(text, str) and bool(text.strip()))
+    valid &= labels.isin([0, 1])
+    cleaned = raw.loc[valid, ["text"]].copy()
+    cleaned.insert(0, "email_id", cleaned.index)
+    cleaned["label_num"] = labels.loc[valid].astype(int)
+    cleaned["text_clean"] = cleaned["text"].map(clean_text)
+    nonempty = cleaned.loc[cleaned["text_clean"].ne("")]
+    if nonempty.groupby("text_clean")["label_num"].nunique().gt(1).any():
+        raise ValueError("Trùng văn bản sạch nhưng khác nhãn.")
+    unique = nonempty.drop_duplicates(subset="text_clean")
+
+    target = output_dir / "cleaned_raw.csv"
+    target.parent.mkdir(parents=True, exist_ok=True)
+    unique.to_csv(target, index=False)
+    print(f"raw={len(raw)} invalid={len(raw)-len(cleaned)} "
+          f"empty_after_cleaning={len(cleaned)-len(nonempty)} "
+          f"duplicates={len(nonempty)-len(unique)} remaining={len(unique)}")
+    summary = {
+        "original_rows": len(raw),
+        "invalid_rows_removed": len(raw) - len(cleaned),
+        "empty_rows_removed": len(cleaned) - len(nonempty),
+        "duplicates_removed": len(nonempty) - len(unique),
+        "clean_rows": len(unique),
+    }
+    (output_dir / "summary.json").write_text(
+        json.dumps(summary, indent=2) + "\n", encoding="utf-8",
+    )
+    print(unique["label_num"].value_counts().sort_index().to_dict())
+    print("Example:", clean_text("<b>FREE!!!</b> Click now for the prize."))
+
+
+def split_clean_data(output_dir=PREPROCESSING_DIR):
+    cleaned = pd.read_csv(output_dir / "cleaned_raw.csv", keep_default_na=False)
+    X = cleaned["text_clean"]
+    y = cleaned["label_num"]
+
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y, test_size=0.2, stratify=y, random_state=42,
+    )
+
+    # Cùng chỉ số dòng giữ văn bản, nhãn và email_id đi cùng nhau.
+    for name, features, labels in (
+        ("train", X_train, y_train),
+        ("test", X_test, y_test),
+    ):
+        split = pd.DataFrame({
+            "email_id": cleaned.loc[features.index, "email_id"],
+            "text_clean": features,
+            "label_num": labels,
+        })
+        split.to_csv(output_dir / f"{name}_clean.csv", index=False)
+        print(f"{name}: {len(split)} emails, {labels.value_counts().sort_index().to_dict()}")
 
 
 def build_vectorizer():
     return TfidfVectorizer(ngram_range=(1, 2), max_features=50_000)
 
 
-def prepare_data(
-    csv_path=LAB_DIR / "Data" / "raw" / "spam_ham_dataset.csv",
-    result_dir=PREPROCESSING_DIR,
-    model_dir=LAB_DIR / "models",
-):
-    """Save intermediate results and return X_train, X_test, y_train, y_test."""
-    result_dir, model_dir = Path(result_dir), Path(model_dir)
-    validated, original_count = load_data(csv_path)
-    validated["text_clean"] = validated["text"].map(clean_text)
-    nonempty = validated.loc[validated["text_clean"].ne("")]
-    if nonempty.groupby("text_clean")["label_num"].nunique().gt(1).any():
-        raise ValueError("Có email trùng nội dung sau làm sạch nhưng khác nhãn.")
-    unique = nonempty.drop_duplicates(subset="text_clean").copy()
-    if unique["label_num"].nunique() != 2:
-        raise ValueError("Dữ liệu cần chứa cả ham (0) và spam (1).")
-
-    train, test = train_test_split(
-        unique, test_size=0.2, random_state=42, stratify=unique["label_num"],
-    )
-    result_dir.mkdir(parents=True, exist_ok=True)
-    validated.to_csv(result_dir / "01_validated.csv", index=False)
-    unique.to_csv(result_dir / "02_deduplicated.csv", index=False)
-    for split in (train, test):
-        split.insert(1, "text_original", split["text"])
-    save_split(train, test, result_dir / "03_split")
-
-    for directory, transform in CLEANING_STEPS:
-        for split in (train, test):
-            split["text"] = split["text"].map(transform)
-        save_split(train, test, result_dir / directory)
+def vectorize_clean_splits(output_dir=PREPROCESSING_DIR):
+    train = pd.read_csv(output_dir / "train_clean.csv", keep_default_na=False)
+    test = pd.read_csv(output_dir / "test_clean.csv", keep_default_na=False)
 
     vectorizer = build_vectorizer()
-    X_train = vectorizer.fit_transform(train["text"])
-    X_test = vectorizer.transform(test["text"])
-    y_train, y_test = train["label_num"].to_numpy(), test["label_num"].to_numpy()
+    # Chỉ học từ vựng và IDF từ train. Test dùng lại các cột đã học.
+    X_train = vectorizer.fit_transform(train["text_clean"])
+    X_test = vectorizer.transform(test["text_clean"])
 
-    tfidf_dir = result_dir / "09_tfidf"
-    tfidf_dir.mkdir(parents=True, exist_ok=True)
-    save_npz(tfidf_dir / "X_train.npz", X_train)
-    save_npz(tfidf_dir / "X_test.npz", X_test)
-    train[["email_id", "label_num"]].to_csv(tfidf_dir / "y_train.csv", index=False)
-    test[["email_id", "label_num"]].to_csv(tfidf_dir / "y_test.csv", index=False)
+    output = output_dir / "09_tfidf"
+    output.mkdir(exist_ok=True)
+    for name, features, rows in (("train", X_train, train), ("test", X_test, test)):
+        save_npz(output / f"X_{name}.npz", features)
+        rows[["email_id", "label_num"]].to_csv(output / f"y_{name}.csv", index=False)
+        print(f"{name}: {features.shape}, {features.nnz} nonzero values")
     pd.DataFrame({"feature_name": vectorizer.get_feature_names_out()}).to_csv(
-        tfidf_dir / "feature_names.csv", index=False,
+        output / "feature_names.csv", index=False,
     )
-    model_dir.mkdir(parents=True, exist_ok=True)
-    joblib.dump(vectorizer, model_dir / "tfidf_vectorizer.joblib")
+    joblib.dump(vectorizer, output / "tfidf_vectorizer.joblib")
+    return X_train, X_test, train["label_num"].to_numpy(), test["label_num"].to_numpy()
 
-    summary = {
-        "original_rows": original_count,
-        "invalid_rows_removed": original_count - len(validated),
-        "empty_rows_removed": len(validated) - len(nonempty),
-        "duplicates_removed": len(nonempty) - len(unique),
-        "test_size": 0.2,
-        "random_state": 42,
-        "train_label_counts": train["label_num"].value_counts().to_dict(),
-        "test_label_counts": test["label_num"].value_counts().to_dict(),
-        "empty_train_after_cleaning": int(train["text"].eq("").sum()),
-        "empty_test_after_cleaning": int(test["text"].eq("").sum()),
-        "X_train_shape": X_train.shape,
-        "X_test_shape": X_test.shape,
-    }
-    (result_dir / "summary.json").write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")
-    return X_train, X_test, y_train, y_test
+
+def prepare_data(output_dir=PREPROCESSING_DIR):
+    main(output_dir)
+    split_clean_data(output_dir)
+    return vectorize_clean_splits(output_dir)
 
 
 if __name__ == "__main__":
-    X_train, X_test, _, _ = prepare_data()
-    print(f"Train: {X_train.shape[0]} | Test: {X_test.shape[0]} | Features: {X_train.shape[1]}")
+    parser = argparse.ArgumentParser(description="Prepare Lab01 email data.")
+    steps = parser.add_mutually_exclusive_group()
+    steps.add_argument("--tfidf", action="store_true", help="Vectorize the clean splits.")
+    steps.add_argument("--split", action="store_true", help="Split the cleaned CSV.")
+    args = parser.parse_args()
+    if args.tfidf:
+        vectorize_clean_splits()
+    elif args.split:
+        split_clean_data()
+    else:
+        main()

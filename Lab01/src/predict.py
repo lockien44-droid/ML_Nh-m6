@@ -1,6 +1,8 @@
 """Classify one unseen email using saved Lab01 artifacts."""
 
 import argparse
+import csv
+from datetime import datetime, timezone
 import json
 
 import joblib
@@ -28,6 +30,19 @@ def main():
     elif args.model == 'svm':
         result['decision_score'] = float(model.decision_function(X)[0])
         result['threshold'] = getattr(model, 'threshold', 0.0)
+    reports = LAB_DIR / "reports"
+    reports.mkdir(exist_ok=True)
+    history = reports / "inference_history.csv"
+    marker = directory / "run_id.txt"
+    run_id = marker.read_text(encoding="utf-8").strip() if marker.exists() else ""
+    fields = ["timestamp_utc", "Run_ID", "model", "label", "spam_probability",
+              "decision_score", "threshold"]
+    with history.open("a", encoding="utf-8", newline="") as stream:
+        writer = csv.DictWriter(stream, fieldnames=fields)
+        if stream.tell() == 0:
+            writer.writeheader()
+        writer.writerow({"timestamp_utc": datetime.now(timezone.utc).isoformat(),
+                         "Run_ID": run_id, **result})
     print(json.dumps(result))
 
 

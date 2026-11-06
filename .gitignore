@@ -7,3 +7,7 @@ Lab01/models/
 Lab01/reports/*
 !Lab01/reports/preprocessing_summary.md
 !Lab01/reports/training_summary.md
+
+# Local training run snapshots include generated data and models.
+Lab01/result/runs/
+Lab01/Data/preprocessing/09_tfidf/tfidf_vectorizer.joblib
