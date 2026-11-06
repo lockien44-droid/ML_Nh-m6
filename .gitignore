@@ -4,4 +4,6 @@ __pycache__/
 venv/
 .ipynb_checkpoints/
 Lab01/models/
-Lab01/reports/
+Lab01/reports/*
+!Lab01/reports/preprocessing_summary.md
+!Lab01/reports/training_summary.md
