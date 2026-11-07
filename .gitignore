@@ -8,6 +8,10 @@ Lab01/reports/*
 !Lab01/reports/preprocessing_summary.md
 !Lab01/reports/training_summary.md
 
-# Local training run snapshots include generated data and models.
-Lab01/result/runs/
+# Keep only the sample run's evaluation files in Git.
+Lab01/results/eda/
+Lab01/results/runs/*
+!Lab01/results/runs/20261106T172203Z-a2e0309c/
+Lab01/results/runs/20261106T172203Z-a2e0309c/*
+!Lab01/results/runs/20261106T172203Z-a2e0309c/evaluation/
 Lab01/Data/preprocessing/09_tfidf/tfidf_vectorizer.joblib

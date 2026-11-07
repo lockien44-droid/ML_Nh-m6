@@ -1,6 +1,6 @@
 # Lab01 — Mô tả hệ thống phân loại email spam
 
-Số liệu và hình lấy từ lượt chạy `20261106T172203Z-a2e0309c`. Xem [giải thích tham số](ReadmeForParameters.md), [lịch sử thực nghiệm](experiment_logs.csv) và [báo cáo chi tiết](report.md).
+Số liệu và hình lấy từ lượt chạy `20261106T172203Z-a2e0309c`. Xem [giải thích tham số](ReadmeForParameters.md) và [lịch sử thực nghiệm](experiment_logs.csv).
 
 ## 1. Mục tiêu
 
@@ -19,7 +19,7 @@ Xây dựng hệ thống học có giám sát để phân loại nội dung emai
 | [report.py](../src/report.py) | Xuất bảng, hình và báo cáo Markdown, HTML, PDF từ lượt huấn luyện. |
 | [__init__.py](../src/__init__.py) | Đánh dấu package `src`. |
 
-Ba class mô hình nằm trong [algorithms/](../algorithms/). Dữ liệu đầu vào nằm trong `Data/`. `result/runs/<run_id>/` giữ bản lưu thực nghiệm theo lượt, còn `reports/` chứa bảng và hình để đọc hoặc trình bày.
+Ba class mô hình nằm trong [algorithms/](../algorithms/). Dữ liệu đầu vào nằm trong `Data/`. `results/runs/<run_id>/` giữ bản lưu thực nghiệm theo lượt, còn `reports/` chứa bảng và hình để đọc hoặc trình bày.
 
 ## 3. Dữ liệu
 

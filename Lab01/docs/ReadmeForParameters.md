@@ -47,7 +47,7 @@ Lab01 thử tốc độ 0,1, 1 và 5 kết hợp 1.000 hoặc 3.000 vòng. Tốc
 
 ## 5. Đọc lịch sử thực nghiệm
 
-[experiment_logs.csv](experiment_logs.csv) có một dòng cho mỗi mô hình cuối trong từng lượt có dữ liệu thời gian. `Run_ID` xác định lượt chạy, `Started_UTC` là thời điểm bắt đầu và `fit_seconds` chỉ đo lời gọi `fit()` cuối, không gồm tiền xử lý, tuning, dự đoán hay tạo báo cáo. Ô trống biểu thị tham số không áp dụng cho mô hình. Ngưỡng LR trong CSV được đối chiếu với hằng số 0,5 trong `predict()`. CSV là bản tổng hợp tại thời điểm lập tài liệu. Nguồn của các lượt mới là `result/runs/<run_id>/evaluation/comparison/training.csv`.
+[experiment_logs.csv](experiment_logs.csv) có một dòng cho mỗi mô hình cuối trong từng lượt có dữ liệu thời gian. `Run_ID` xác định lượt chạy, `Started_UTC` là thời điểm bắt đầu và `fit_seconds` chỉ đo lời gọi `fit()` cuối, không gồm tiền xử lý, tuning, dự đoán hay tạo báo cáo. Ô trống biểu thị tham số không áp dụng cho mô hình. Ngưỡng LR trong CSV được đối chiếu với hằng số 0,5 trong `predict()`. CSV là bản tổng hợp tại thời điểm lập tài liệu. Nguồn của các lượt mới là `results/runs/<run_id>/evaluation/comparison/training.csv`.
 
 
 ## 6. So sánh khi đổi tham số

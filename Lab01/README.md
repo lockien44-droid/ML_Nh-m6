@@ -1,6 +1,6 @@
 # Lab01 — Phân loại email spam
 
-Lab01 dùng TF-IDF và ba mô hình tự cài đặt để phân loại email thành ham (0) hoặc spam (1). Xem [báo cáo Lab01](docs/report.md) để đọc phương pháp, cấu hình và phân tích lỗi.
+Lab01 dùng TF-IDF và ba mô hình tự cài đặt để phân loại email thành ham (0) hoặc spam (1).
 
 ## Chạy nhanh
 
@@ -30,7 +30,7 @@ Có thể đổi `--model` thành `svm` hoặc `naive_bayes`. Mô hình cuối v
 
 ## Theo dõi từng lần huấn luyện
 
-`python -m Lab01.src.train` in đường dẫn `Lab01/result/runs/<run_id>/`. Mỗi lần chạy có mã riêng và lưu các đầu ra của chính nó.
+`python -m Lab01.src.train` in đường dẫn `Lab01/results/runs/<run_id>/`. Mỗi lần chạy có mã riêng và lưu các đầu ra của chính nó.
 
 | Tệp hoặc thư mục trong lượt chạy | Nội dung |
 |---|---|
@@ -40,7 +40,7 @@ Có thể đổi `--model` thành `svm` hoặc `naive_bayes`. Mô hình cuối v
 | `evaluation/` | Baseline, thử tham số, kết quả test và ma trận nhầm lẫn |
 | `models/` | Ba mô hình cuối và bộ TF-IDF của lượt chạy |
 
-Sau khi đánh giá xong, chương trình sao chép đầu ra sang các vị trí quen thuộc để lệnh dự đoán và liên kết báo cáo tiếp tục dùng được. Khi so sánh nhiều lần chạy, mở thư mục theo `run_id`. Git bỏ qua các bản lưu theo lượt vì chúng chứa cả ma trận và mô hình.
+Kết quả đánh giá chỉ được lưu trong `results/runs/<run_id>/evaluation/`. Git giữ bảng và tệp đánh giá của lượt mẫu bên dưới. Các lượt mới được lưu cục bộ.
 
 ## Báo cáo tự động
 
@@ -59,23 +59,24 @@ Nếu cần tạo lại báo cáo từ một lượt đã hoàn tất và có `e
 python -m Lab01.src.report --run-id <run_id>
 ```
 
-Mở trực tiếp tệp HTML hoặc PDF khi demo. Bốn ảnh ma trận ở gốc `reports/` là bản tương thích của lượt vừa xuất báo cáo.
+Mở tệp HTML hoặc PDF trong `reports/` để trình bày. Ảnh của báo cáo nằm trong `reports/figures/<run_id>/`.
 
 ## Tài liệu Lab01
 
 - [Mô tả hệ thống và kết quả](docs/Lab01_descript.md)
 - [Giải thích tham số](docs/ReadmeForParameters.md)
 - [Lịch sử thực nghiệm](docs/experiment_logs.csv)
-- [Báo cáo chi tiết](docs/report.md)
 
-## Đầu ra
+## Đầu ra mẫu
+
+Các liên kết đánh giá dưới đây trỏ tới lượt `20261106T172203Z-a2e0309c`.
 
 | Nội dung | Tệp |
 |---|---|
 | Dữ liệu sạch và tập chia | [cleaned_raw.csv](Data/preprocessing/cleaned_raw.csv), [train_clean.csv](Data/preprocessing/train_clean.csv), [test_clean.csv](Data/preprocessing/test_clean.csv) |
 | TF-IDF, nhãn và tên đặc trưng | [09_tfidf/](Data/preprocessing/09_tfidf/) |
-| Baseline | [baseline.csv](result/comparison/baseline.csv) |
-| Cấu hình và ngưỡng chọn | [selection.json](result/comparison/selection.json), [ngưỡng SVM](result/comparison/svm_study/selection.json) |
-| Kết quả test | [metrics.csv](result/comparison/metrics.csv) |
+| Baseline | [baseline.csv](results/runs/20261106T172203Z-a2e0309c/evaluation/comparison/baseline.csv) |
+| Cấu hình và ngưỡng chọn | [selection.json](results/runs/20261106T172203Z-a2e0309c/evaluation/comparison/selection.json), [ngưỡng SVM](results/runs/20261106T172203Z-a2e0309c/evaluation/comparison/svm_study/selection.json) |
+| Kết quả test | [metrics.csv](results/runs/20261106T172203Z-a2e0309c/evaluation/comparison/metrics.csv) |
 
-Chạy `python -m Lab01.src.eda` để khảo sát dữ liệu gốc và tạo biểu đồ tổng quan tại `result/eda/overview.png`. Xem [ảnh phân bố nhãn trong tài liệu](docs/images/label_distribution.png).
+Chạy `python -m Lab01.src.eda` để khảo sát dữ liệu gốc và tạo biểu đồ tổng quan tại `results/eda/overview.png`. Xem [ảnh phân bố nhãn trong tài liệu](docs/images/label_distribution.png).

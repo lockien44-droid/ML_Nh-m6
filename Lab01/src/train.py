@@ -210,14 +210,13 @@ def train_run(run_dir, log):
     pd.DataFrame(training).to_csv(comparison_dir / "training.csv", index=False)
     log("publish_compatibility_outputs")
     copytree(prep, PREPROCESSING_DIR, dirs_exist_ok=True)
-    copytree(result_dir, LAB_DIR / "result", dirs_exist_ok=True)
     copytree(model_dir, LAB_DIR / "models", dirs_exist_ok=True)
     (LAB_DIR / "models" / "run_id.txt").write_text(run_dir.name + "\n", encoding="utf-8")
 
 
 def main():
     dataset = DATA_DIR / "raw" / "spam_ham_dataset.csv"
-    with training_run(LAB_DIR / "result" / "runs", dataset) as (run_dir, log):
+    with training_run(LAB_DIR / "results" / "runs", dataset) as (run_dir, log):
         train_run(run_dir, log)
     from .report import generate
 

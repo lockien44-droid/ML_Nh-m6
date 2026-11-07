@@ -68,7 +68,7 @@ def analyze(csv_path, output_dir):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--data", type=Path, default=LAB_DIR / "Data/raw/spam_ham_dataset.csv")
-    parser.add_argument("--output", type=Path, default=LAB_DIR / "result/eda")
+    parser.add_argument("--output", type=Path, default=LAB_DIR / "results/eda")
     args = parser.parse_args()
     print(json.dumps(analyze(args.data, args.output), indent=2))
 

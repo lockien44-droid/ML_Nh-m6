@@ -23,7 +23,7 @@ from .preprocessing import DATA_DIR, LAB_DIR, build_vectorizer
 MODELS = {"logistic_regression": "lr", "naive_bayes": "nb", "svm": "svm"}
 DISPLAY = {"logistic_regression": "Logistic Regression", "naive_bayes": "Naive Bayes", "svm": "Linear SVM"}
 REPORTS = LAB_DIR / "reports"
-RUNS = LAB_DIR / "result" / "runs"
+RUNS = LAB_DIR / "results" / "runs"
 
 
 def chart(path, title, labels, values, ylabel):
@@ -143,9 +143,6 @@ def save_evaluation(run, output, metrics, X_test, y_test):
         frame.rename(index=DISPLAY).plot.bar(ax=ax, rot=0)
         ax.set(title=title, ylim=(0, 1.08), xlabel="")
         fig.savefig(output / filename, dpi=150)
-    for short in (*MODELS.values(), "all"):
-        name = f"confusion_matrix_{short}.png"
-        copy2(output / name, REPORTS / name)
 
 
 def threshold_comparison(run, train):
