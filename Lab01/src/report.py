@@ -155,7 +155,7 @@ def threshold_comparison(run, train):
     model = LogisticRegression(**selection["selected"]["logistic_regression"])
     model.fit(vectorizer.fit_transform(subtrain["text_clean"]), subtrain["label_num"].to_numpy())
     scores = model.predict_proba(vectorizer.transform(validation["text_clean"]))
-    from .train import threshold_metrics
+    from .tuning import threshold_metrics
     actual = validation["label_num"].to_numpy()
     rows = []
     for threshold in (0.3, 0.4, 0.5, 0.6, 0.7):

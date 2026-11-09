@@ -28,6 +28,14 @@ python -m Lab01.src.predict --model logistic_regression --text "Congratulations!
 
 Có thể đổi `--model` thành `svm` hoặc `naive_bayes`. Mô hình cuối và vectorizer được sinh trong `Lab01/models/`.
 
+## Pipeline và tuning
+
+Có thể chạy toàn bộ quy trình bằng `python -m Lab01.src.pipeline`. Lệnh `python -m Lab01.src.train` cũng chạy cùng pipeline.
+
+`tuning.py` tách validation từ train ban đầu, fit TF-IDF trên phần huấn luyện thử và chọn cấu hình theo Macro-F1 trên validation. Logistic Regression thử learning rate và số vòng lặp, SVM thử cấu hình rồi chọn trọng số lớp và ngưỡng điểm, còn Naive Bayes thử hệ số làm trơn `alpha`. Logistic Regression tiếp tục dự đoán với ngưỡng 0,5.
+
+Trong `evaluation/comparison/` của mỗi lần chạy, `subtrain_clean.csv` và `validation_clean.csv` chứa các email theo từng tập. `validation.csv` ghi điểm của các cấu hình đã thử, `selection.json` ghi cấu hình được chọn và `svm_study/` chứa kết quả khảo sát ngưỡng SVM.
+
 ## Theo dõi từng lần huấn luyện
 
 `python -m Lab01.src.train` in đường dẫn `Lab01/results/runs/<run_id>/`. Mỗi lần chạy có mã riêng và lưu các đầu ra của chính nó.
