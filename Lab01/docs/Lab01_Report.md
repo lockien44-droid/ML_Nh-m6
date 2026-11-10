@@ -4,7 +4,7 @@
 
 Lab01 phân loại email dựa trên nội dung. Ba mô hình dùng chung vector TF-IDF và trả về nhãn ham (`0`) hoặc spam (`1`). Logistic Regression dùng xác suất spam, Linear SVM dùng điểm quyết định và Naive Bayes so sánh điểm của hai lớp. Hai lỗi cần theo dõi là spam bị bỏ lọt (FN) và ham bị đánh dấu nhầm (FP). Lab01 dùng Macro-F1 để chọn cấu hình, tức trung bình F1 của hai lớp.
 
-Báo cáo trình bày quy trình của lần chạy `20261106T172203Z-a2e0309c`. Ba thuật toán được so sánh trên cùng cách chia dữ liệu, cùng đầu vào TF-IDF và cùng bộ chỉ số. Bài toán có hai yêu cầu cần cân bằng. Recall spam cao giúp giảm số thư rác lọt vào hộp thư đến. Precision spam cao giúp các thư bị gắn cờ có ít email hợp lệ hơn.
+Báo cáo trình bày quy trình của lần chạy `Thứ 2`. Ba thuật toán được so sánh trên cùng cách chia dữ liệu, cùng đầu vào TF-IDF và cùng bộ chỉ số. Bài toán có hai yêu cầu cần cân bằng. Recall spam cao giúp giảm số thư rác lọt vào hộp thư đến. Precision spam cao giúp các thư bị gắn cờ có ít email hợp lệ hơn.
 
 ## 2. Thu thập và gán nhãn dữ liệu
 
