@@ -15,3 +15,6 @@ Lab01/results/runs/*
 Lab01/results/runs/20261106T172203Z-a2e0309c/*
 !Lab01/results/runs/20261106T172203Z-a2e0309c/evaluation/
 Lab01/Data/preprocessing/09_tfidf/tfidf_vectorizer.joblib
+
+# Generated Lab01 experiments (Vietnam time run IDs).
+Lab01/results_runs/

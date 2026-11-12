@@ -36,7 +36,7 @@ Lab01/
 │   ├── pipeline.py                    # Điều phối tiền xử lý, baseline, tuning, đánh giá và báo cáo
 │   ├── config.yaml                    # Tỷ lệ, seed chia validation và siêu tham số cần thử
 │   ├── preprocessing.py              # Làm sạch, kiểm tra nhãn, chia train/test và tạo TF-IDF
-│   ├── tuning.py                     # Chia validation, chọn cấu hình và ngưỡng SVM theo Macro-F1
+│   ├── tuning.py                     # Chia validation, chọn cấu hình và ngưỡng LR/SVM theo Macro-F1
 │   ├── train.py                      # Ghi trace huấn luyện baseline và giữ lệnh chạy cũ
 │   ├── evaluate.py                   # Tính chỉ số, lưu dự đoán và vẽ ma trận nhầm lẫn
 │   ├── run_report.py                 # Tạo mã lần chạy, ghi nhật ký và xuất hình tiền xử lý
@@ -50,8 +50,8 @@ Lab01/
 │   ├── naive_bayes.joblib             # Multinomial Naive Bayes đã huấn luyện
 │   ├── tfidf_vectorizer.joblib        # Bộ từ vựng và IDF đã học
 │   └── run_id.txt                     # Mã lần chạy đã tạo các mô hình đang lưu
-├── results/
-│   └── runs/<run_id>/                 # Dữ liệu, mô hình và kết quả của từng lần huấn luyện
+├── results_runs/
+│   └── <run_id>/                 # Dữ liệu, mô hình và kết quả của từng lần huấn luyện
 ├── reports/                          # Báo cáo tự động, hình ảnh và các bảng lịch sử
 ├── docs/
 │   ├── Lab01_Report.md                # Báo cáo chi tiết theo 12 bước
@@ -64,10 +64,10 @@ Lab01/
 
 ### Đầu ra của một lần chạy
 
-Các mục dưới đây được tạo khi chạy pipeline. `<run_id>` là mã được in trong Terminal.
+Các mục dưới đây được tạo khi chạy pipeline. `<run_id>` dùng giờ Việt Nam (UTC+7), ví dụ `20261113_024122_baseline_tuned`, và được in trong Terminal. Nếu trùng đến giây, hệ thống thêm `_02`, `_03`… để không ghi đè. Timestamp trong nhật ký và `run.json` có múi giờ `+07:00`. Các lần chạy cũ trong `results/runs/` được giữ nguyên.
 
 ```text
-Lab01/results/runs/<run_id>/
+Lab01/results_runs/<run_id>/
 ├── run.json                           # Thời gian, trạng thái và SHA-256 của dữ liệu đầu vào
 ├── events.jsonl                       # Nhật ký các giai đoạn của lần chạy
 ├── preprocessing/                    # Dữ liệu sạch, train/test và TF-IDF của lần chạy
@@ -94,11 +94,16 @@ Trong `svm_study/validation.csv`, cột `confusion_matrix` ghi ma trận trên *
 
 ## Luồng xử lý
 
-1. Làm sạch email, kiểm tra nhãn và loại trùng, rồi chia train/test theo tỷ lệ 80/20.
-2. Tạo TF-IDF từ tập train và chạy các mô hình mặc định để lấy kết quả baseline.
-3. Tách validation từ train theo tỷ lệ và seed trong `config.yaml`. Fit TF-IDF trên phần train thử rồi dùng bộ từ vựng đó để biến đổi validation.
-4. So sánh cấu hình theo Macro-F1 trên validation. Logistic Regression thử learning rate và số vòng lặp, SVM thử thêm `C`, trọng số lớp và ngưỡng điểm, còn Naive Bayes thử hệ số làm trơn `alpha`. Logistic Regression dùng ngưỡng dự đoán 0,5.
-5. Fit lại TF-IDF và ba mô hình trên toàn bộ train ban đầu. Đánh giá trên test, lưu mô hình, ma trận nhầm lẫn và báo cáo.
+1. Làm sạch email, kiểm tra nhãn và loại trùng, rồi chia train ban đầu/test theo tỷ lệ 80/20.
+2. Tách validation từ train ban đầu theo `config.yaml` (mặc định 20% của train). Học TF-IDF duy nhất trên subtrain; validation và test chỉ được biến đổi bằng bộ này.
+3. Huấn luyện baseline mặc định trên subtrain, đánh giá validation (`baseline_validation.csv`). Giữ lại chính các mô hình baseline đã fit.
+4. Logistic Regression thử từng cấu hình learning rate/số vòng và chọn ngưỡng xác suất theo Macro-F1 validation. SVM thử toàn bộ tổ hợp learning rate/số vòng/`C`/trọng số lớp, tìm ngưỡng tốt nhất cho mỗi tổ hợp rồi chọn chung. Naive Bayes chọn `alpha` bằng validation. Tất cả mô hình học trên cùng subtrain và TF-IDF.
+5. Giữ nguyên mô hình đã fit, TF-IDF và ngưỡng được chọn; **không fit lại trên train + validation**. Đánh giá cả baseline và mô hình tinh chỉnh trên test ở cuối. `baseline.csv`/`metrics.csv` lưu từng nhóm; `before_after.csv` ghép hai nhóm. `baseline_training.csv`/`training.csv` ghi thời gian fit trên subtrain của từng mô hình được giữ (không phải tổng thời gian tìm kiếm).
+6. Lưu mô hình tinh chỉnh trong `models/`, baseline trong `models/baseline/`; demo dùng mô hình tinh chỉnh. Báo cáo ngưỡng đọc kết quả validation đã lưu, không huấn luyện lại.
+
+`train_clean.csv` vẫn chứa train ban đầu (subtrain + validation). Trong `09_tfidf/`, `X_train.npz` và `y_train.csv` tương ứng với **subtrain_clean.csv**; `X_validation.npz`/`y_validation.csv` tương ứng validation. `metadata.json` ghi rõ vai trò này. Mọi ma trận dùng đúng bộ TF-IDF đã học trên subtrain.
+
+`logistic_threshold_validation.csv` lưu mọi ngưỡng LR đã thử và đánh dấu cấu hình được chọn. `svm_study/validation.csv` lưu kết quả ngưỡng 0 và ngưỡng tốt nhất cho từng tổ hợp; mỗi tổ hợp có `candidate_id` riêng. `selection.json` lưu đầy đủ cấu hình và ngưỡng cuối, cùng `fit_split=subtrain`, `refit=false`.
 
 ## Cài đặt và chạy
 
@@ -131,13 +136,21 @@ python -m Lab01.src.predict --model svm --text "Congratulations! Claim your free
 
 Tham số `--model` nhận `logistic_regression`, `svm` hoặc `naive_bayes`.
 
+Để demo đúng mô hình của một lần chạy đã chốt, thêm `--run-id`:
+
+```powershell
+python -m Lab01.src.predict --run-id 20261113_024910_baseline_tuned --model svm --text "Congratulations! Claim your free cash prize now"
+```
+
+Lệnh đọc mô hình và TF-IDF trực tiếp trong lần chạy, giữ nguyên ngưỡng đã chọn, không huấn luyện lại. Không có `--run-id`, lệnh vẫn dùng `Lab01/models/`. Kết quả và lịch sử dự đoán ghi mã lần chạy được sử dụng.
+
 ## Tài liệu chi tiết
 Báo cáo tự động nằm trong `reports/`, hình theo lần chạy nằm trong `reports/figures/<run_id>/`. File `metrics_summary.csv` tổng hợp chỉ số test theo mã lần chạy, còn `inference_history.csv` ghi lịch sử dự đoán.
 
 Để tạo lại báo cáo từ một lần chạy đã hoàn tất, thay `RUN_ID` bằng mã thư mục tương ứng:
 
 ```powershell
-python -m Lab01.src.report --run-id RUN_ID
+python -m Lab01.src.report --run-id 20261113_024122_baseline_tuned
 ```
 
 Xem thêm [báo cáo chi tiết theo 12 bước](docs/Lab01_Report.md) và [giải thích các tham số](docs/ReadmeForParameters.md).

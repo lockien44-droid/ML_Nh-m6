@@ -14,16 +14,15 @@ from matplotlib.backends.backend_pdf import PdfPages
 from matplotlib.figure import Figure
 from scipy.sparse import load_npz
 from sklearn.metrics import ConfusionMatrixDisplay, auc, confusion_matrix, roc_curve
-from sklearn.model_selection import train_test_split
 
-from ..algorithms import LogisticRegression
 from .eda import analyze
-from .preprocessing import DATA_DIR, LAB_DIR, build_vectorizer
+from .preprocessing import DATA_DIR, LAB_DIR
 
 MODELS = {"logistic_regression": "lr", "naive_bayes": "nb", "svm": "svm"}
 DISPLAY = {"logistic_regression": "Logistic Regression", "naive_bayes": "Naive Bayes", "svm": "Linear SVM"}
 REPORTS = LAB_DIR / "reports"
-RUNS = LAB_DIR / "results" / "runs"
+RUNS = LAB_DIR / "results"
+LEGACY_RUNS = LAB_DIR / "results" / "runs"
 
 
 def chart(path, title, labels, values, ylabel):
@@ -145,24 +144,19 @@ def save_evaluation(run, output, metrics, X_test, y_test):
         fig.savefig(output / filename, dpi=150)
 
 
-def threshold_comparison(run, train):
-    selection = json.loads((run / "evaluation/comparison/selection.json").read_text(encoding="utf-8"))
-    subtrain, validation = train_test_split(
-        train, test_size=selection["validation_fraction"], random_state=selection["seed"],
-        stratify=train["label_num"],
-    )
-    vectorizer = build_vectorizer()
-    model = LogisticRegression(**selection["selected"]["logistic_regression"])
-    model.fit(vectorizer.fit_transform(subtrain["text_clean"]), subtrain["label_num"].to_numpy())
-    scores = model.predict_proba(vectorizer.transform(validation["text_clean"]))
-    from .tuning import threshold_metrics
-    actual = validation["label_num"].to_numpy()
-    rows = []
-    for threshold in (0.3, 0.4, 0.5, 0.6, 0.7):
-        row = threshold_metrics(actual, scores, threshold)
-        del row["confusion_matrix"]
-        rows.append({"Run_ID": run.name, "split": "validation", **row})
-    return pd.DataFrame(rows)
+def threshold_comparison(run):
+    """Report the selected configuration's saved validation sweep, without fitting."""
+    path = run / 'evaluation/comparison/logistic_threshold_validation.csv'
+    if not path.exists():
+        raise FileNotFoundError('This run has no saved LR threshold sweep; rerun the current pipeline.')
+    rows = pd.read_csv(path)
+    if 'selected_configuration' in rows:
+        rows = rows.loc[rows['selected_configuration'].eq(True)].copy()
+    else:
+        selected = json.loads((path.parent / 'selection.json').read_text(encoding='utf-8'))['selected']['logistic_regression']
+        for key in ('learning_rate', 'n_iterations'):
+            rows = rows.loc[rows[key].eq(selected[key])].copy()
+    return rows.drop(columns=['confusion_matrix'], errors='ignore').assign(Run_ID=run.name, split='validation')
 
 
 def write_reports(run, metrics, figures):
@@ -176,7 +170,11 @@ def write_reports(run, metrics, figures):
         display[column] = display[column].map(lambda value: f"{value:.2%}")
     images = sorted(figures.glob("*/*.png"))
     rel = [path.relative_to(REPORTS).as_posix() for path in images]
-    note = "Test metrics describe one previously inspected split. LR threshold comparison uses validation."
+    selection = json.loads((run / 'evaluation/comparison/selection.json').read_text(encoding='utf-8'))
+    note = ("Models and TF-IDF fitted on subtrain; configurations and thresholds selected on validation; "
+            "no refit before test. LR threshold comparison uses saved validation results."
+            if selection.get('refit') is False else
+            "Historical run. LR threshold comparison uses saved validation results.")
     cells = [display.columns.tolist(), *display.astype(str).values.tolist()]
     md_table = ["| " + " | ".join(row) + " |" for row in cells]
     md_table.insert(1, "| " + " | ".join(["---"] * len(cells[0])) + " |")
@@ -259,18 +257,22 @@ def generate(run):
     save_eda(pd.read_csv(source), source, figures / "eda")
     save_preprocessing(run, prep, figures / "preprocessing", X_train)
     training_dir = figures / "training"
-    chart(training_dir / "training_time_comparison.png", "Final fit time",
+    chart(training_dir / "training_time_comparison.png", "Selected model fit time (subtrain)",
           training["model"].map(MODELS).str.upper(), training["fit_seconds"], "Seconds")
     configuration = training.drop(columns="fit_seconds")
-    configuration.loc[configuration["model"].eq("logistic_regression"), "threshold"] = 0.5
+    lr_rows = configuration["model"].eq("logistic_regression")
+    configuration.loc[lr_rows, "threshold"] = configuration.loc[lr_rows, "threshold"].fillna(0.5)
     table_figure(training_dir / "training_configuration.png", "Final model configuration", configuration)
     overview = pd.DataFrame([
-        ["Train", X_train.shape[0], X_train.shape[1], X_train.nnz],
+        ["Subtrain" if (prep / "subtrain_clean.csv").exists() else "Train", X_train.shape[0], X_train.shape[1], X_train.nnz],
         ["Test", X_test.shape[0], X_test.shape[1], X_test.nnz],
     ], columns=["Split", "Emails", "Features", "Nonzero entries"])
+    if (prep / '09_tfidf/X_validation.npz').exists():
+        V = load_npz(prep / '09_tfidf/X_validation.npz')
+        overview.loc[len(overview)] = ['Validation', V.shape[0], V.shape[1], V.nnz]
     table_figure(training_dir / "training_dataset_overview.png", "Dataset overview", overview)
     save_evaluation(run, figures / "evaluation", metrics, X_test, y_test)
-    thresholds = threshold_comparison(run, pd.read_csv(prep / "train_clean.csv", keep_default_na=False))
+    thresholds = threshold_comparison(run)
     update_history(REPORTS / "metrics_summary.csv", metrics.assign(Run_ID=run.name), run.name)
     update_history(REPORTS / "lr_threshold_comparison.csv", thresholds, run.name)
     write_reports(run, metrics, figures)
@@ -280,9 +282,16 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--run-id", required=True)
     args = parser.parse_args()
-    if not re.fullmatch(r"\d{8}T\d{6}Z-[0-9a-f]{8}", args.run_id):
+    current = re.fullmatch(r"\d{8}_\d{6}_baseline_tuned(?:_\d{2,})?", args.run_id)
+    legacy = re.fullmatch(r"\d{8}T\d{6}Z-[0-9a-f]{8}", args.run_id)
+    if not (current or legacy):
         parser.error("Invalid run ID.")
-    generate(RUNS / args.run_id)
+    run = (RUNS if current else LEGACY_RUNS) / args.run_id
+    if current and not (run / 'run.json').exists():
+        previous_location = LAB_DIR / 'results_runs' / args.run_id
+        if (previous_location / 'run.json').exists():
+            run = previous_location
+    generate(run)
 
 
 if __name__ == "__main__":

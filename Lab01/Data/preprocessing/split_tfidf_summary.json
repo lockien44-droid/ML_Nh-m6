@@ -10,18 +10,29 @@
       1,
       2
     ],
-    "norm": "l2"
+    "norm": "l2",
+    "fit_split": "subtrain"
   },
   "sets": {
-    "train": {
-      "ham": 2741,
-      "spam": 1166,
+    "subtrain": {
+      "ham": 2192,
+      "spam": 933,
       "shape": [
-        3907,
+        3125,
         50000
       ],
-      "nonzero": 387045,
-      "density_percent": 0.19812899923214744
+      "nonzero": 312835,
+      "density_percent": 0.2002144
+    },
+    "validation": {
+      "ham": 549,
+      "spam": 233,
+      "shape": [
+        782,
+        50000
+      ],
+      "nonzero": 70784,
+      "density_percent": 0.18103324808184143
     },
     "test": {
       "ham": 686,
@@ -30,8 +41,8 @@
         977,
         50000
       ],
-      "nonzero": 86379,
-      "density_percent": 0.17682497441146366
+      "nonzero": 85955,
+      "density_percent": 0.175957011258956
     }
   }
 }

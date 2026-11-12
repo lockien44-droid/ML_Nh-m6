@@ -1,0 +1,4 @@
+model,split,accuracy,macro_f1,ham_as_spam,spam_as_ham,spam_precision,spam_recall,spam_f1,predicted_spam,predicted_ham
+logistic_regression,validation,0.7020460358056266,0.4124718256949662,0,233,0.0,0.0,0.0,0,782
+svm,validation,0.7020460358056266,0.4124718256949662,0,233,0.0,0.0,0.0,0,782
+naive_bayes,validation,0.9475703324808185,0.9337664618086041,0,41,1.0,0.8240343347639485,0.9035294117647059,192,590

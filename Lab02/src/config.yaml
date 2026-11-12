@@ -1,0 +1,20 @@
+data:
+  path: data/raw/E-Commerc.csv
+  encoding: cp1252
+  top_products: 20
+split:
+  train_fraction: 0.6
+  validation_fraction: 0.2
+seed: 42
+models:
+  linear_regression:
+    - {alpha: 1.0, learning_rate: 0.1, n_iterations: 3000}
+    - {alpha: 10.0, learning_rate: 0.1, n_iterations: 3000}
+  decision_tree:
+    - {max_depth: 5, min_samples_leaf: 10}
+    - {max_depth: 10, min_samples_leaf: 20}
+  random_forest:
+    - {n_estimators: 60, max_depth: 10, min_samples_leaf: 5}
+  gradient_boosting:
+    - {n_estimators: 60, max_depth: 2, learning_rate: 0.05}
+    - {n_estimators: 100, max_depth: 2, learning_rate: 0.05}

@@ -1,18 +1,15 @@
 """Run the Lab01 preprocessing, training, evaluation and reporting pipeline."""
 
 from shutil import copytree
-from time import perf_counter
+import json
 
 import joblib
-import numpy as np
 import pandas as pd
-from scipy.sparse import isspmatrix_csr
+from scipy.sparse import isspmatrix_csr, save_npz
 
-from ..algorithms import LinearSVM, LogisticRegression, MultinomialNaiveBayes
 from .evaluate import evaluate
-from .preprocessing import DATA_DIR, LAB_DIR, PREPROCESSING_DIR, build_vectorizer, prepare_data
+from .preprocessing import DATA_DIR, LAB_DIR, PREPROCESSING_DIR, main as clean_data, split_clean_data
 from .run_report import save_preprocessing_figures, training_run
-from .train import trace_fit
 from .tuning import select_models
 
 
@@ -21,66 +18,73 @@ def train_run(run_dir, log):
     model_dir = run_dir / "models"
     prep = run_dir / "preprocessing"
     log("preprocessing")
-    X_train, X_test, y_train, y_test = prepare_data(prep)
-    save_preprocessing_figures(run_dir, X_train, X_test, y_train, y_test)
+    clean_data(prep)
+    split_clean_data(prep)
     train, test = (pd.read_csv(prep / f"{split}_clean.csv", keep_default_na=False)
                    for split in ("train", "test"))
-    for features, labels, frame, split in ((X_train, y_train, train, "train"), (X_test, y_test, test, "test")):
-        saved = pd.read_csv(prep / "09_tfidf" / f"y_{split}.csv")
-        if (not isspmatrix_csr(features) or features.shape[0] != len(labels)
-                or not np.array_equal(labels, frame["label_num"])
-                or not saved.equals(frame[["email_id", "label_num"]].reset_index(drop=True))):
-            raise ValueError(f"CSR rows, email IDs and labels do not align for {split}.")
-    email_ids = test["email_id"]
-    models = {
-        "logistic_regression": LogisticRegression(),
-        "svm": LinearSVM(),
-        "naive_bayes": MultinomialNaiveBayes(),
-    }
-
     comparison_dir = result_dir / "comparison"
-    comparison_dir.mkdir(parents=True, exist_ok=True)
-    log("baseline")
-    baseline = []
-    for name, model in models.items():
-        if name == "naive_bayes":
-            model.fit(X_train, y_train)
-        else:
-            trace_fit(model, X_train, y_train, comparison_dir / f"{name}_trace.csv")
-        predicted = model.predict(X_test)
-        metrics = evaluate(y_test, predicted, email_ids, comparison_dir / "baseline" / name)
-        baseline.append({"model": name, **metrics, "predicted_spam": int(predicted.sum()),
-                         "predicted_ham": int(len(predicted) - predicted.sum())})
-    pd.DataFrame(baseline).to_csv(comparison_dir / "baseline.csv", index=False)
-
-    log("validation")
-    models.update(select_models(train, comparison_dir))
-    # Refit the shared vectorizer on the original full training split after selection.
-    vectorizer = build_vectorizer()
-    X_train = vectorizer.fit_transform(train["text_clean"])
+    log("validation_baseline_and_selection")
+    selection = select_models(train, comparison_dir)
+    vectorizer = selection.vectorizer
+    models, tuned_models = selection.baselines, selection.models
+    X_train, X_validation = selection.X, selection.V
+    # Transform only: never fit again after selecting a threshold.
     X_test = vectorizer.transform(test["text_clean"])
+    y_train = selection.subtrain['label_num'].to_numpy()
+    y_validation = selection.validation['label_num'].to_numpy()
+    y_test, email_ids = test['label_num'].to_numpy(), test['email_id']
+    feature_dir = prep / '09_tfidf'
+    feature_dir.mkdir(parents=True, exist_ok=True)
+    selection.subtrain.to_csv(prep / 'subtrain_clean.csv', index=False)
+    selection.validation.to_csv(prep / 'validation_clean.csv', index=False)
+    for name, features, frame in (
+        ('train', X_train, selection.subtrain),
+        ('validation', X_validation, selection.validation), ('test', X_test, test)):
+        if not isspmatrix_csr(features) or features.shape[0] != len(frame):
+            raise ValueError(f"CSR rows and labels do not align for {name}.")
+        save_npz(feature_dir / f'X_{name}.npz', features)
+        frame[['email_id', 'label_num']].to_csv(feature_dir / f'y_{name}.csv', index=False)
+    pd.DataFrame({'feature_name': vectorizer.get_feature_names_out()}).to_csv(
+        feature_dir / 'feature_names.csv', index=False)
+    joblib.dump(vectorizer, feature_dir / 'tfidf_vectorizer.joblib')
+    (feature_dir / 'metadata.json').write_text(json.dumps(dict(
+        fit_split='subtrain', X_train_rows='subtrain_clean.csv', refit=False), indent=2) + '\n', encoding='utf-8')
+    save_preprocessing_figures(run_dir, X_train, X_test, y_train, y_test,
+                               X_validation=X_validation, y_validation=y_validation)
+    log("save_selected_models")
     model_dir.mkdir(parents=True, exist_ok=True)
-    joblib.dump(vectorizer, model_dir / "tfidf_vectorizer.joblib")
-    log("final_training_and_evaluation")
-    comparison = []
-    training = []
-    for name, model in models.items():
-        started = perf_counter()
-        model.fit(X_train, y_train)
-        training.append({
-            "model": name, "fit_seconds": perf_counter() - started,
-            **{key: getattr(model, key, None) for key in
-               ("learning_rate", "n_iterations", "C", "alpha", "threshold")},
-        })
-        metrics = evaluate(y_test, model.predict(X_test), email_ids, result_dir / name)
-        joblib.dump(model, model_dir / f"{name}.joblib")
-        comparison.append({"model": name, **metrics})
-        print(f"{name}: accuracy={metrics['accuracy']:.2%}, macro F1={metrics['macro_f1']:.2%}")
+    joblib.dump(vectorizer, model_dir / 'tfidf_vectorizer.joblib')
+    baseline_model_dir = model_dir / 'baseline'
+    baseline_model_dir.mkdir(parents=True, exist_ok=True)
+    for group, group_models in (("baseline", models), ("tuned", tuned_models)):
+        destination = baseline_model_dir if group == 'baseline' else model_dir
+        for name, model in group_models.items():
+            joblib.dump(model, destination / f'{name}.joblib')
 
-    comparison_dir = result_dir / "comparison"
-    comparison_dir.mkdir(parents=True, exist_ok=True)
+    log("final_test_evaluation")
+    baseline, comparison = [], []
+    for group, group_models in (("baseline", models), ("tuned", tuned_models)):
+        for name, model in group_models.items():
+            predicted = model.predict(X_test)
+            output = comparison_dir / "baseline" / name if group == "baseline" else result_dir / name
+            metrics = evaluate(y_test, predicted, email_ids, output)
+            row = {"model": name, "split": "test", **metrics}
+            if group == "baseline":
+                baseline.append({**row, "predicted_spam": int(predicted.sum()),
+                                 "predicted_ham": int(len(predicted) - predicted.sum())})
+            else:
+                comparison.append(row)
+            print(f"{group}/{name}: accuracy={metrics['accuracy']:.2%}, macro F1={metrics['macro_f1']:.2%}")
+    pd.DataFrame(baseline).to_csv(comparison_dir / "baseline.csv", index=False)
     pd.DataFrame(comparison).to_csv(comparison_dir / "metrics.csv", index=False)
-    pd.DataFrame(training).to_csv(comparison_dir / "training.csv", index=False)
+    training_frame = pd.DataFrame(selection.training)
+    training_frame.loc[training_frame['variant'].eq('tuned')].to_csv(
+        comparison_dir / "training.csv", index=False)
+    training_frame.loc[training_frame['variant'].eq('baseline')].to_csv(
+        comparison_dir / "baseline_training.csv", index=False)
+    pd.DataFrame([{**row, "variant": variant}
+                  for variant, rows in (("baseline", baseline), ("tuned", comparison))
+                  for row in rows]).to_csv(comparison_dir / "before_after.csv", index=False)
     log("publish_compatibility_outputs")
     copytree(prep, PREPROCESSING_DIR, dirs_exist_ok=True)
     copytree(model_dir, LAB_DIR / "models", dirs_exist_ok=True)
@@ -89,7 +93,7 @@ def train_run(run_dir, log):
 
 def main():
     dataset = DATA_DIR / "raw" / "spam_ham_dataset.csv"
-    with training_run(LAB_DIR / "results" / "runs", dataset) as (run_dir, log):
+    with training_run(LAB_DIR / "results", dataset) as (run_dir, log):
         train_run(run_dir, log)
     from .report import generate
 

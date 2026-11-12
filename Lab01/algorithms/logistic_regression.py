@@ -3,7 +3,10 @@ from scipy.sparse import issparse
 
 
 class LogisticRegression:
-    def __init__(self, learning_rate=0.1, n_iterations=1000):
+    def __init__(self, learning_rate=0.1, n_iterations=1000, *, threshold=0.5):
+        if not np.isfinite(threshold) or not 0 <= threshold <= 1:
+            raise ValueError("threshold must be between 0 and 1.")
+        self.threshold = float(threshold)
         self.learning_rate = learning_rate
         self.n_iterations = n_iterations
         self.weights = None
@@ -66,5 +69,5 @@ class LogisticRegression:
     # Đưa ra nhãn cuối cùng
     def predict(self, X):
         probabilities = self.predict_proba(X)
-        # True thành 1 (spam), False thành 0 (ham). Đúng 0,5 được gán spam.
-        return (probabilities >= 0.5).astype(int)
+        # Use the validation-selected threshold; support older saved models.
+        return (probabilities >= getattr(self, "threshold", 0.5)).astype(int)

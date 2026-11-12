@@ -1,0 +1,71 @@
+﻿email_id,group,text,expected_label,source,context_vi
+H01,ham_clear,"Subject: Project meeting on Thursday
+
+Hi team,
+Our project meeting is scheduled for Thursday at 10 AM in room 204. Please review the experiment results and bring your notes about the presentation.
+Thanks,
+Alex",0,synthetic,Trao đổi nội bộ về lịch họp dự án.
+H02,ham_clear,"Subject: Updated report for review
+
+Hi Morgan,
+I have updated the report with the latest figures and corrected the table captions. Please review section three and let me know if any explanation is unclear.
+Best,
+Taylor",0,synthetic,Đồng nghiệp gửi nội dung báo cáo cần duyệt.
+H03,ham_clear,"Subject: Lunch plans for tomorrow
+
+Hi Sam,
+Would you like to have lunch after class tomorrow? I finish at noon and can meet you outside the library. Let me know what time works for you.
+See you,
+Jamie",0,synthetic,Tin nhắn cá nhân từ người quen.
+H04,ham_clear,"Subject: Your library book is ready
+
+Hello,
+The book you reserved is now available at the campus library. Please collect it at the service desk before Friday and bring your student card.
+Library Services",0,synthetic,Thông báo tương ứng với yêu cầu đặt sách đã thực hiện.
+H05,ham_clear,"Subject: Feedback on your assignment
+
+Hi Jordan,
+Your assignment has been reviewed. The introduction is clear, but the evaluation section needs more explanation. Please compare precision and recall and submit your revision next week.
+Regards,
+Chris",0,synthetic,Giảng viên phản hồi bài tập đã nộp.
+S01,spam_clear,"Subject: You have won a cash prize
+
+Congratulations!
+Your email address has been selected for a cash prize of one million dollars. Send your bank account details and pay the processing charge today to receive your reward. Act immediately before your prize expires.",1,synthetic,"Thông báo trúng thưởng không đăng ký, đòi phí và thông tin ngân hàng."
+S02,spam_clear,"Subject: Guaranteed income with no experience
+
+Earn thousands of dollars every day from home! No skills, no effort, and no experience are required. Send your registration payment now and we guarantee you will become rich within a week. Limited places available!",1,synthetic,"Chào mời thu nhập phi thực tế, yêu cầu trả tiền trước."
+S03,spam_clear,"Subject: Urgent account verification required
+
+Your bank account will be permanently closed in two hours. Reply with your password, card number, and verification code so our support team can restore access. Do not contact your branch because this must be handled by email.",1,synthetic,Giả mạo ngân hàng yêu cầu mật khẩu và mã xác thực.
+S04,spam_clear,"Subject: Exclusive miracle treatment
+
+Buy our miracle capsules today! They cure every illness in just three days with guaranteed results. No medical consultation is needed. Order ten bottles now and receive an exclusive secret discount. Reply immediately to secure your supply.",1,synthetic,Quảng cáo điều trị phi thực tế gửi ngoài mong muốn.
+S05,spam_clear,"Subject: Private investment opportunity
+
+You have been chosen for a confidential investment that doubles your money in 24 hours with zero risk. Transfer your deposit today to reserve your position. Keep this opportunity secret and do not ask anyone else for advice.",1,synthetic,Đầu tư cam kết lợi nhuận phi thực tế và yêu cầu chuyển tiền.
+D01,challenging,"Subject: Free Python workshop for employees
+
+Hi team,
+The company is offering a free Python workshop next Friday. Employees can register through the usual internal learning portal. There is no payment required. Please check with your manager if you need time away from your regular tasks.
+Learning and Development",0,synthetic,"Ham mô phỏng từ nội bộ; có các từ free, register, payment dễ gây nhầm."
+D02,challenging,"Subject: Refund approved for your recent order
+
+Hello Casey,
+We have approved the refund you requested for order 4821. The amount will be returned to your original payment method within five business days. You do not need to send your bank details or pay a processing fee.
+Customer Support",0,synthetic,Ham: người nhận đã yêu cầu hoàn tiền cho đơn hàng này; từ bank details và processing fee xuất hiện trong câu phủ định.
+D03,challenging,"Subject: Security reminder for your work account
+
+Hi everyone,
+Please review the security settings for your work account this week. Open the company portal using your saved bookmark and enable two-factor authentication if it is not already active. The IT team will never ask you to email your password or verification code.
+IT Services",0,synthetic,"Ham: hướng dẫn bảo mật nội bộ; có password, verification code nhưng không yêu cầu gửi chúng."
+D04,challenging,"Subject: Following up on invoice 7318
+
+Hello,
+I am following up on invoice 7318 for the consulting work completed last month. Our payment account has changed. Please use the replacement bank details in my next message and arrange the transfer today. There is no need to check with the previous contact.
+Accounts Team",1,synthetic,"Spam/lừa đảo mô phỏng: không có hợp đồng hay hóa đơn tương ứng, người gửi mạo danh. Văn phong giống email công việc; ngữ cảnh này không nằm trong đầu vào mô hình."
+D05,challenging,"Subject: Next step in your application
+
+Hello,
+We reviewed your profile and would like to offer you a remote assistant position. No interview is necessary. Before receiving your contract, please pay the equipment reservation fee by bank transfer. This payment is required today to keep the position available.
+Recruitment Office",1,synthetic,"Spam/lừa đảo tuyển dụng mô phỏng: người nhận không ứng tuyển, bị yêu cầu đóng phí trước. Có từ vựng công việc bình thường."
