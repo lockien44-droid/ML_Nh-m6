@@ -5,7 +5,7 @@ import json
 import re
 from html import escape
 from pathlib import Path
-from shutil import copy2
+from shutil import copy2, copytree
 
 import joblib
 import numpy as np
@@ -66,11 +66,6 @@ def save_eda(raw, source, output):
     ax.set(title="Email length by class", xlabel="Words", ylabel="Emails")
     ax.legend()
     fig.savefig(output / "email_length_distribution.png", dpi=150)
-    # The individual stage plots replace the legacy composite in this directory.
-    (output / "overview.png").unlink()
-    for name in ("summary.json", "features_by_label.csv"):
-        (output / name).unlink()
-    (output / "label_distribution.csv").replace(REPORTS / "label_distribution.csv")
 
 
 def save_preprocessing(run, prep, output, X_train):
@@ -254,7 +249,12 @@ def generate(run):
     from hashlib import sha256
     if sha256(source.read_bytes()).hexdigest() != manifest["dataset_sha256"]:
         raise ValueError("Current dataset differs from the one used in the run.")
-    save_eda(pd.read_csv(source), source, figures / "eda")
+    eda_dir = run / "figures" / "eda"
+    if not (eda_dir / "summary.json").exists():
+        # Support reports for historical runs created before the EDA stage.
+        save_eda(pd.read_csv(source), source, eda_dir)
+    copytree(eda_dir, figures / "eda", dirs_exist_ok=True)
+    copy2(eda_dir / "label_distribution.csv", REPORTS / "label_distribution.csv")
     save_preprocessing(run, prep, figures / "preprocessing", X_train)
     training_dir = figures / "training"
     chart(training_dir / "training_time_comparison.png", "Selected model fit time (subtrain)",

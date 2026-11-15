@@ -32,4 +32,17 @@ def evaluate(frame, predicted, output):
     result["predicted"] = predicted
     result["residual"] = result["sales"] - predicted
     result.to_csv(output, index=False)
+    result["absolute_error"] = np.abs(result["residual"])
+    result.nlargest(10, "absolute_error").to_csv(
+        output.with_name(output.stem + "_largest_errors.csv"), index=False)
+    for group in ("StockCode", "weekday"):
+        grouped = result.copy()
+        if group == "weekday":
+            grouped[group] = pd.to_datetime(grouped["date"]).dt.dayofweek
+        rows = []
+        for value, part in grouped.groupby(group):
+            rows.append({group: value, "samples": len(part),
+                         "mean_residual": float(part.residual.mean()),
+                         **metrics(part.sales, part.predicted)})
+        pd.DataFrame(rows).to_csv(output.with_name(output.stem + "_" + group + "_metrics.csv"), index=False)
     return metrics(frame.sales, predicted)

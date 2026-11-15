@@ -11,9 +11,10 @@ MODELS = {"linear_regression": Linear, "decision_tree": Tree,
 
 def build_model(name, parameters, seed):
     settings = dict(parameters)
+    feature_set = settings.pop("feature_set", "basic")
     if name != "linear_regression":
         settings["random_state"] = seed
-    return SalesModel(build_preprocessor(), MODELS[name](**settings))
+    return SalesModel(build_preprocessor(feature_set), MODELS[name](**settings))
 
 
 class SalesModel:

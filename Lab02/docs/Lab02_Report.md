@@ -151,3 +151,8 @@ Chạy toàn bộ bằng python -m Lab02.src.pipeline từ thư mục gốc repo
 Hệ thống hiện có dự đoán cục bộ. API production, nguồn lịch sử tự cập nhật, dự báo nhiều bước, giám sát drift và phản hồi tồn kho là các phần phát triển tiếp. Khi có nhãn thực tế sau triển khai, có thể theo dõi MAE và RMSE theo ngày, theo sản phẩm và so với baseline.
 
 Bộ xử lý tự cài học trung vị, trung bình, độ lệch chuẩn và danh sách mã sản phẩm từ train. Cột số thiếu hoàn toàn được điền 0. Cột hằng có hệ số chia bằng 1. Mã sản phẩm lạ khi transform cho vector one-hot toàn 0.
+
+
+## Kiểm chứng theo thời gian và phân tích lỗi
+
+Pipeline bổ sung ba cửa sổ train mở rộng, giữ nguyên thứ tự ngày. Điểm chọn cấu hình là RMSE trung bình của ba cửa sổ và validation cuối. Test chỉ dùng đánh giá sau khi chọn. Bảng walk_forward_metrics.csv lưu từng cửa sổ. Mỗi lượt lưu đủ CSV train/validation/test. Baseline bổ sung trung bình theo sản phẩm. Bảng lỗi lớn nhất và chỉ số theo sản phẩm/ngày trong tuần giúp tìm nơi dự báo thiếu hoặc dư.

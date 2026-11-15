@@ -1,0 +1,5 @@
+{
+  "fit_split": "subtrain",
+  "X_train_rows": "subtrain_clean.csv",
+  "refit": false
+}

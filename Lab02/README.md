@@ -6,12 +6,12 @@ Triển khai bài Predicting Product Sales bằng bốn thuật toán tự cài 
 
 ## Thành viên nhóm
 
-- Nguyễn Thị Thanh Thùy
+- Vũ Thị Thanh Thùy
 - Nguyễn Văn Minh
 - Lê Hồng Sơn
 - Phan Đình Hưng
 - Phạm Minh Tiến
-- Võ Thị Thanh Tú
+- Võ Thị Anh Tú
 
 ## Cấu trúc thư mục
 
@@ -86,3 +86,21 @@ Thay 23166 bằng mã có trong models/products.json. Có thể thêm --model ra
 - [Tham số và đặc trưng](docs/parameters.md)
 
 Bộ xử lý tự cài học trung vị, trung bình, độ lệch chuẩn và danh sách mã sản phẩm từ train. Cột số thiếu hoàn toàn được điền 0. Cột hằng có hệ số chia bằng 1. Mã sản phẩm lạ khi transform cho vector one-hot toàn 0.
+
+
+## Kiểm chứng theo thời gian và phân tích lỗi
+
+Pipeline bổ sung ba cửa sổ train mở rộng, giữ nguyên thứ tự ngày. Điểm chọn cấu hình là RMSE trung bình của ba cửa sổ và validation cuối. Test chỉ dùng đánh giá sau khi chọn. Bảng walk_forward_metrics.csv lưu từng cửa sổ. Mỗi lượt lưu đủ CSV train/validation/test. Baseline bổ sung trung bình theo sản phẩm. Bảng lỗi lớn nhất và chỉ số theo sản phẩm/ngày trong tuần giúp tìm nơi dự báo thiếu hoặc dư.
+
+
+## So sánh đặc trưng và dự đoán từ lịch sử
+
+Mỗi cấu hình thử hai bộ basic và trend trên cùng cửa sổ thời gian. Bộ trend thêm chênh lệch trung bình 7/28 ngày, chênh lệch lag_1 với mean_7 và chênh lệch lag_1 với lag_7. Các đặc trưng được tính trong bộ xử lý lưu cùng mô hình. Bộ basic vẫn là phương án đối chiếu khi chọn cấu hình.
+
+Có thể dùng CSV doanh số theo ngày với cột StockCode,date,sales. Cần đủ 28 ngày liên tiếp trước ngày dự đoán, mỗi sản phẩm/ngày một dòng. Ngày có doanh số 0 phải ghi rõ. Chương trình bỏ qua các dòng từ ngày dự đoán trở đi.
+
+```powershell
+python -m Lab02.src.predict --history history.csv --product 23166 --date 2011-12-10
+```
+
+Cách nhập JSON cũ vẫn được hỗ trợ. Kết quả đánh giá hiện tại là dự báo từng ngày với lịch sử thực tế đã biết.

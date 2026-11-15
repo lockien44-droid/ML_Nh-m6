@@ -6,12 +6,12 @@ Lab01 dùng TF-IDF và ba thuật toán tự cài đặt để phân loại emai
 
 ## Thành viên nhóm
 
-1. Nguyễn Thị Thanh Thùy
-2. Nguyễn Văn Minh
-3. Lê Hồng Sơn
-4. Phan Đình Hưng
-5. Phạm Minh Tiến
-6. Võ Thị Thanh Tú
+- Vũ Thị Thanh Thùy
+- Nguyễn Văn Minh
+- Lê Hồng Sơn
+- Phan Đình Hưng
+- Phạm Minh Tiến
+- Võ Thị Anh Tú
 
 ## Cấu trúc thư mục
 
@@ -154,3 +154,6 @@ python -m Lab01.src.report --run-id 20261113_024122_baseline_tuned
 ```
 
 Xem thêm [báo cáo chi tiết theo 12 bước](docs/Lab01_Report.md) và [giải thích các tham số](docs/ReadmeForParameters.md).
+
+
+EDA chạy ở đầu pipeline và lưu bảng thống kê cùng hình tại `results/<run_id>/figures/eda/`. Khi xuất báo cáo, chương trình dùng lại các đầu ra này và sao chép sang `reports/figures/<run_id>/eda/`.

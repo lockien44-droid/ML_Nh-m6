@@ -17,6 +17,12 @@ def train_run(run_dir, log):
     result_dir = run_dir / "evaluation"
     model_dir = run_dir / "models"
     prep = run_dir / "preprocessing"
+    from .report import save_eda
+
+    log("eda")
+    source = DATA_DIR / "raw" / "spam_ham_dataset.csv"
+    save_eda(pd.read_csv(source), source, run_dir / "figures" / "eda")
+    log("eda", "success")
     log("preprocessing")
     clean_data(prep)
     split_clean_data(prep)

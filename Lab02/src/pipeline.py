@@ -28,7 +28,7 @@ def main():
         processed_dir.mkdir(parents=True, exist_ok=True)
 
         # Chia dữ liệu và lưu train.csv, validation.csv, test.csv
-        train, validation, test, summary = prepare_data(config, processed_dir)
+        train, validation, test, summary = prepare_data(config, run / "preprocessing")
 
         # Lưu thông tin tóm tắt cùng dữ liệu
         summary_text = json.dumps(summary, indent=2)
@@ -45,7 +45,7 @@ def main():
         selection = tune(train, validation, config, run / "evaluation")
         (run / "selection.json").write_text(json.dumps(selection, indent=2))
         validation_rows = pd.read_csv(run / "evaluation/validation_metrics.csv")
-        winner = validation_rows.loc[validation_rows.rmse.idxmin(), "model"]
+        winner = validation_rows.loc[validation_rows.selection_rmse.idxmin(), "model"]
         development = pd.concat([train, validation])
         rows = []
         log("final_training")
@@ -59,7 +59,8 @@ def main():
             rows.append({"model": name, "fit_seconds": elapsed, **score})
             joblib.dump(model, run / "models" / f"{name}.joblib")
         for name, predicted in [("mean_baseline", np.repeat(development.sales.mean(), len(test))),
-                                ("last_week_baseline", test.lag_7.to_numpy())]:
+                                ("last_week_baseline", test.lag_7.to_numpy()),
+                                ("product_mean_baseline", test.StockCode.map(development.groupby("StockCode").sales.mean()).to_numpy())]:
             rows.append({"model": name, "fit_seconds": 0,
                          **evaluate(test, predicted, run / "evaluation" / f"{name}.csv")})
         results = pd.DataFrame(rows)

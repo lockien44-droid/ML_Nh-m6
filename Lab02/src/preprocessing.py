@@ -61,11 +61,26 @@ def prepare_data(config, output):
     return train, validation, test, summary
 
 
+def expand_history_features(frame):
+    frame = frame.copy()
+    frame["trend_7_28"] = frame["mean_7"] - frame["mean_28"]
+    frame["recent_change"] = frame["lag_1"] - frame["mean_7"]
+    frame["weekly_change"] = frame["lag_1"] - frame["lag_7"]
+    return frame
+
+
 class Preprocessor:
     """Learn medians, scaling and product vocabulary from training rows."""
 
+    def __init__(self, feature_set="basic"):
+        if feature_set not in ("basic", "trend"):
+            raise ValueError("Unknown feature set.")
+        self.feature_set = feature_set
+
     def fit(self, frame):
-        values = frame[NUMERIC].to_numpy(dtype=float)
+        self.numeric = NUMERIC + (["trend_7_28", "recent_change", "weekly_change"]
+                                  if self.feature_set == "trend" else [])
+        values = expand_history_features(frame)[self.numeric].to_numpy(dtype=float)
         if len(values) == 0 or np.isinf(values).any():
             raise ValueError("Training features must be nonempty and contain no infinities.")
         # A completely missing column uses zero as its documented fallback.
@@ -83,7 +98,7 @@ class Preprocessor:
     def transform(self, frame):
         if not hasattr(self, "medians"):
             raise ValueError("Fit the preprocessor before transform.")
-        values = frame[NUMERIC].to_numpy(dtype=float)
+        values = expand_history_features(frame)[getattr(self, "numeric", NUMERIC)].to_numpy(dtype=float)
         if np.isinf(values).any():
             raise ValueError("Features must contain no infinities.")
         filled = np.where(np.isnan(values), self.medians, values)
@@ -96,5 +111,5 @@ class Preprocessor:
         return self.fit(frame).transform(frame)
 
 
-def build_preprocessor():
-    return Preprocessor()
+def build_preprocessor(feature_set="basic"):
+    return Preprocessor(feature_set)

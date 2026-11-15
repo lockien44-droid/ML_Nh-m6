@@ -1,0 +1,11 @@
+{
+  "total_rows": 5171,
+  "missing_or_blank_text": 0,
+  "invalid_labels": 0,
+  "exact_duplicate_text_rows": 178,
+  "usable_rows": 5171,
+  "label_counts": {
+    "ham": 3672,
+    "spam": 1499
+  }
+}
