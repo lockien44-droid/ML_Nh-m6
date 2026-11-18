@@ -1,0 +1,14 @@
+{
+  "run_id": "2026-11-18_21-27-27",
+  "status": "success",
+  "timestamp_timezone": "Asia/Ho_Chi_Minh",
+  "started_at": "2026-11-18T21:27:27.359552+07:00",
+  "dataset_sha256": "416a4f62a8f33841a16e1db5297f0e05d3b65b05e73632cedae58e739e1e1f77",
+  "raw_rows": 200,
+  "eligible_rows": 200,
+  "excluded_rows": 0,
+  "selected_k": 6,
+  "silhouette": 0.42742814991580175,
+  "finished_at": "2026-11-18T21:27:34.434668+07:00",
+  "duration_seconds": 7.075137700001505
+}

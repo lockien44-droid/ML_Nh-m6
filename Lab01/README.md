@@ -37,10 +37,10 @@ Lab01/
 │   ├── config.yaml                    # Tỷ lệ, seed chia validation và siêu tham số cần thử
 │   ├── preprocessing.py              # Làm sạch, kiểm tra nhãn, chia train/test và tạo TF-IDF
 │   ├── tuning.py                     # Chia validation, chọn cấu hình và ngưỡng LR/SVM theo Macro-F1
-│   ├── train.py                      # Ghi trace huấn luyện baseline và giữ lệnh chạy cũ
+│   ├── train.py                      # Huấn luyện dùng chung và ghi diễn biến huấn luyện
 │   ├── evaluate.py                   # Tính chỉ số, lưu dự đoán và vẽ ma trận nhầm lẫn
-│   ├── run_report.py                 # Tạo mã lần chạy, ghi nhật ký và xuất hình tiền xử lý
-│   ├── report.py                     # Tổng hợp kết quả và xuất Markdown, HTML, PDF
+│   ├── experiment_tracking.py                 # Tạo mã lần chạy, ghi thời gian, trạng thái và nhật ký
+│   ├── eda.py                     # Khảo sát dữ liệu, vẽ hình và xuất báo cáo Markdown, HTML, PDF
 │   ├── eda.py                        # Khảo sát nhãn, độ dài email và dữ liệu thiếu
 │   ├── predict.py                    # Nạp mô hình và TF-IDF để dự đoán email mới
 │   └── __init__.py                   # Khai báo package src
@@ -58,13 +58,13 @@ Lab01/
 │   ├── ReadmeForParameters.md         # Giải thích các tham số
 │   ├── experiment_logs.csv           # Nhật ký thực nghiệm trong tài liệu
 │   └── images/                       # Hình minh họa trong tài liệu
-├── notebook/                         # Thư mục dành cho notebook thực nghiệm
+├── notebooks/                        # Khảo sát dữ liệu và thử nghiệm validation
 └── README.md                         # Cấu trúc và cách chạy Lab01
 ```
 
 ### Đầu ra của một lần chạy
 
-Các mục dưới đây được tạo khi chạy pipeline. `<run_id>` dùng giờ Việt Nam (UTC+7), ví dụ `20261113_024122_baseline_tuned`, và được in trong Terminal. Nếu trùng đến giây, hệ thống thêm `_02`, `_03`… để không ghi đè. Timestamp trong nhật ký và `run.json` có múi giờ `+07:00`. Các lần chạy cũ trong `results/runs/` được giữ nguyên.
+Các mục dưới đây được tạo khi chạy pipeline. `<run_id>` dùng giờ Việt Nam (UTC+7), ví dụ `20261118_212649_baseline_tuned`, và được in trong Terminal. Nếu trùng đến giây, hệ thống thêm `_02`, `_03`… để không ghi đè. Timestamp trong nhật ký và `run.json` có múi giờ `+07:00`. Các lần chạy cũ trong `results/runs/` được giữ nguyên.
 
 ```text
 Lab01/results_runs/<run_id>/
@@ -139,7 +139,7 @@ Tham số `--model` nhận `logistic_regression`, `svm` hoặc `naive_bayes`.
 Để demo đúng mô hình của một lần chạy đã chốt, thêm `--run-id`:
 
 ```powershell
-python -m Lab01.src.predict --run-id 20261113_024910_baseline_tuned --model svm --text "Congratulations! Claim your free cash prize now"
+python -m Lab01.src.predict --run-id 20261118_212649_baseline_tuned --model svm --text "Congratulations! Claim your free cash prize now"
 ```
 
 Lệnh đọc mô hình và TF-IDF trực tiếp trong lần chạy, giữ nguyên ngưỡng đã chọn, không huấn luyện lại. Không có `--run-id`, lệnh vẫn dùng `Lab01/models/`. Kết quả và lịch sử dự đoán ghi mã lần chạy được sử dụng.
@@ -150,10 +150,50 @@ Báo cáo tự động nằm trong `reports/`, hình theo lần chạy nằm tro
 Để tạo lại báo cáo từ một lần chạy đã hoàn tất, thay `RUN_ID` bằng mã thư mục tương ứng:
 
 ```powershell
-python -m Lab01.src.report --run-id 20261113_024122_baseline_tuned
+python -m Lab01.src.eda --run-id 20261118_212649_baseline_tuned
 ```
 
 Xem thêm [báo cáo chi tiết theo 12 bước](docs/Lab01_Report.md) và [giải thích các tham số](docs/ReadmeForParameters.md).
 
 
 EDA chạy ở đầu pipeline và lưu bảng thống kê cùng hình tại `results/<run_id>/figures/eda/`. Khi xuất báo cáo, chương trình dùng lại các đầu ra này và sao chép sang `reports/figures/<run_id>/eda/`.
+
+
+## Cải tiến thực nghiệm
+
+Chạy riêng một thuật toán bằng python -m Lab01.src.pipeline --model naive_bayes
+(cũng nhận logistic_regression hoặc svm). Kết quả và mô hình của lần chạy riêng nằm
+trong thư mục lần chạy. Dùng predict --run-id để dự đoán với phiên bản đó.
+
+logistic_regression.threshold trong src/config.yaml nhận số từ 0 đến 1 để cố định
+ngưỡng. Đặt null để chọn trên validation. threshold_candidates là danh sách ngưỡng
+cần thử, để rỗng sẽ quét các điểm xác suất. Ngưỡng đã chọn được lưu cùng mô hình.
+
+svm_study/all_thresholds.csv ghi mọi ngưỡng đã thử, Accuracy, Macro-F1, Precision,
+Recall, F1, FP/FN và ma trận. Mỗi cấu hình có candidate_id riêng.
+selected_validation/<model>/errors.csv và evaluation/<model>/errors.csv ghi email_id,
+text_clean, nhãn thật, nhãn dự đoán, điểm, ngưỡng và loại lỗi FP/FN.
+Nội dung là văn bản sau làm sạch, có thể truy nguyên bản gốc bằng email_id.
+
+features trong YAML cấu hình TF-IDF của pipeline. analyzer có thể là word hoặc
+char_wb, ngram_range khai báo khoảng độ dài từ/cụm ký tự.
+
+## Trách nhiệm các module
+
+train.py cung cấp train_model() để huấn luyện một mô hình và trace_fit() để ghi
+diễn biến. tuning.py gọi train_model() cho baseline và các ứng viên.
+experiment_tracking.py quản lý mã lần chạy, thời gian, trạng thái và nhật ký.
+eda.py phụ trách hình tiền xử lý và báo cáo. pipeline.py điều phối toàn bộ.
+Lệnh python -m Lab01.src.train tiếp tục gọi pipeline.
+
+
+## Notebook khảo sát và thử nghiệm
+
+- notebooks/Lab01_Spam_Classification.ipynb khảo sát dữ liệu, làm sạch và thử nghiệm đặc trưng, ngưỡng, tuning trên validation.
+
+Mở notebook trong VS Code, chọn kernel Python của dự án và chạy các ô theo thứ tự.
+Cài ipykernel nếu kernel yêu cầu. Phần thử nghiệm validation cần train_clean.csv từ bước tiền xử lý.
+Các kết quả được lưu vào results/notebook_eda_<mã> hoặc results/notebook_validation_<mã>.
+
+
+Các lần chạy được lưu cục bộ và bỏ qua trong Git. Repository giữ một lần chạy tham chiếu đầy đủ để đối chiếu báo cáo. Tham chiếu hiện tại là `20261118_212649_baseline_tuned`. Chạy pipeline sẽ tạo thư mục mới, không ghi đè thư mục tham chiếu.

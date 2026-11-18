@@ -1,5 +1,7 @@
 {
-  "raw_rows": 536641,
+  "raw_rows": 541909,
+  "deduplicated_rows": 536641,
+  "duplicate_rows_removed": 5268,
   "clean_transaction_rows": 522504,
   "products": [
     "23166",

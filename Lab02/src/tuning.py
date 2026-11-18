@@ -2,8 +2,8 @@
 import numpy as np
 import pandas as pd
 from .preprocessing import FEATURES
-from .train import build_model
-from .evaluate import metrics
+from .train import train_model
+from .evaluate import metrics, evaluate
 
 
 def tune(train, validation, config, output):
@@ -18,15 +18,16 @@ def tune(train, validation, config, output):
     rows, fold_rows, selected = [], [], {}
     for name, candidates in config["models"].items():
         best = float("inf")
-        for parameters in candidates:
-            model = build_model(name, parameters, config["seed"])
-            model.fit(train[FEATURES], train.sales)
-            score = metrics(validation.sales, np.maximum(0, model.predict(validation[FEATURES])))
+        best_prediction = None
+        for number, parameters in enumerate(candidates, 1):
+            print(f"tuning {name} {number}/{len(candidates)}", flush=True)
+            model = train_model(name, parameters, config["seed"], train[FEATURES], train.sales)
+            prediction = np.maximum(0, model.predict(validation[FEATURES]))
+            score = metrics(validation.sales, prediction)
             rows.append({"model": name, "parameters": str(parameters), **score})
             fold_scores = []
             for fold, (past, future) in enumerate(folds, 1):
-                candidate = build_model(name, parameters, config["seed"])
-                candidate.fit(past[FEATURES], past.sales)
+                candidate = train_model(name, parameters, config["seed"], past[FEATURES], past.sales)
                 result = metrics(future.sales, np.maximum(0, candidate.predict(future[FEATURES])))
                 fold_scores.append(result["rmse"])
                 fold_rows.append({"model": name, "parameters": str(parameters), "fold": fold,
@@ -39,6 +40,8 @@ def tune(train, validation, config, output):
             if selection_rmse < best:
                 best = selection_rmse
                 selected[name] = dict(parameters)
+                best_prediction = prediction.copy()
+        evaluate(validation, best_prediction, output / f"{name}_validation.csv")
     pd.DataFrame(rows).to_csv(output / "validation_metrics.csv", index=False)
     pd.DataFrame(fold_rows).to_csv(output / "walk_forward_metrics.csv", index=False)
     return selected

@@ -1,6 +1,6 @@
 # Lab01 — Giải thích tham số
 
-Các giá trị cấu hình cuối trong tài liệu này thuộc lần chạy **`20261113_024910_baseline_tuned`** (13/11/2026, giờ Việt Nam). Nguồn: [selection.json](../results/20261113_024910_baseline_tuned/evaluation/comparison/selection.json).
+Các giá trị cấu hình cuối trong tài liệu này thuộc lần chạy **`20261118_212649_baseline_tuned`** (13/11/2026, giờ Việt Nam). Nguồn: [selection.json](../results/20261118_212649_baseline_tuned/evaluation/comparison/selection.json).
 
 Tài liệu này tách ba nhóm giá trị dùng trong Lab01. **Tham số huấn luyện** ảnh hưởng đến cách mô hình học, **tham số tiền xử lý** xác định đặc trưng đầu vào, còn **ngưỡng quyết định** chuyển điểm thành nhãn. Trọng số mô hình và bias do thuật toán học từ dữ liệu.
 
@@ -49,7 +49,7 @@ Lab01 thử tốc độ 0,1, 1 và 5 kết hợp 1.000 hoặc 3.000 vòng. Hai c
 
 ## 5. Đọc lịch sử thực nghiệm
 
-[experiment_logs.csv](experiment_logs.csv) có một dòng cho mỗi mô hình tuned được ghi nhận của từng lần chạy. Các dòng cũ được giữ làm lịch sử; ba dòng của `20261113_024910_baseline_tuned` dùng cấu hình và thời gian từ `results/20261113_024910_baseline_tuned/evaluation/comparison/training.csv`.
+[experiment_logs.csv](experiment_logs.csv) có một dòng cho mỗi mô hình tuned được ghi nhận của từng lần chạy. Các dòng cũ được giữ làm lịch sử; ba dòng của `20261118_212649_baseline_tuned` dùng cấu hình và thời gian từ `results/20261118_212649_baseline_tuned/evaluation/comparison/training.csv`.
 
 `Run_ID` xác định lần chạy. `Started_UTC` giữ thời điểm bắt đầu quy đổi sang UTC để thống nhất với dữ liệu cũ; `run.json` của lần chạy mới lưu thời gian gốc UTC+7. `fit_seconds` đo duy nhất lời gọi fit của mô hình được chọn, không gồm tiền xử lý, dò ngưỡng, các cấu hình bị loại, dự đoán hay xuất báo cáo. Lần chạy hiện tại fit trên subtrain; lần lịch sử `20261106T172203Z-a2e0309c` dùng quy trình fit lại trên train ban đầu nên không nên so sánh thời gian như cùng điều kiện.
 
@@ -60,7 +60,7 @@ Baseline học cùng subtrain và TF-IDF với tuned. Kết quả validation n�
 Mọi mô hình được giữ nguyên sau lựa chọn, không fit lại trên train + validation. Dự đoán bằng mô hình đã chốt:
 
 ```powershell
-python -m Lab01.src.predict --run-id 20261113_024910_baseline_tuned --model svm --text "Claim your free prize now"
+python -m Lab01.src.predict --run-id 20261118_212649_baseline_tuned --model svm --text "Claim your free prize now"
 ```
 
 

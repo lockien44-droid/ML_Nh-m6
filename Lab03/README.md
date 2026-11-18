@@ -29,10 +29,10 @@ Phân cấp được so sánh trên cùng 200 khách.
 
 [Notebook](notebooks/01_customer_clustering.ipynb)
 [Báo cáo](docs/Lab03_Report.md)
-[Biểu đồ 3D](results/runs/2026-11-18_19-38-16/figures/customer_clusters_3d.html)
+[Biểu đồ 3D](results/runs/2026-11-18_21-27-27/figures/customer_clusters_3d.html)
 [Nguồn và giấy phép](Data/raw/SOURCE.md)
 
-Git giữ một lần chạy tham chiếu 2026-11-18_19-38-16. Các lượt chạy mới được lưu cục bộ và gitignore.
+Git giữ một lần chạy tham chiếu 2026-11-18_21-27-27. Các lượt chạy mới được lưu cục bộ và gitignore.
 Mở HTML 3D bằng trình duyệt để xoay, thu phóng, xem tên nhóm và tâm cụm.
 
 
@@ -63,3 +63,6 @@ validation/ là các phân tích kiểm chứng cụm, không phải tập valid
 như bài học có giám sát. Cột CustomerID trong validation/hierarchical_clusters.csv ghi đủ 200 khách dùng trong phép đối chiếu.
 
 Notebook Run All tạo thư mục mới có hậu tố notebook và mã riêng; không ghi kết quả vào lần chạy tham chiếu. config.yaml và run.json trong thư mục mới ghi cấu hình và hash dữ liệu.
+
+
+Các lần chạy được lưu cục bộ và bỏ qua trong Git. Repository giữ một lần chạy tham chiếu đầy đủ để đối chiếu báo cáo. Tham chiếu hiện tại là `2026-11-18_21-27-27`. Chạy pipeline sẽ tạo thư mục mới, không ghi đè thư mục tham chiếu.

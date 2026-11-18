@@ -31,3 +31,9 @@ class SalesModel:
 
     def predict(self, X):
         return self.estimator.predict(self.preprocessor.transform(X))
+
+
+def train_model(name, parameters, seed, X, y):
+    """Construct and fit one model on the supplied training partition."""
+    model = build_model(name, parameters, seed)
+    return model.fit(X, y)

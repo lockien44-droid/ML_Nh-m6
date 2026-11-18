@@ -1,0 +1,27 @@
+validation:
+  fraction: 0.2
+  seed: 43
+
+logistic_regression:
+  threshold: null
+  threshold_candidates: []
+  learning_rate: [0.1, 1.0, 5.0,]
+  n_iterations: [1000, 3000]
+
+svm:
+  candidates:
+    - {learning_rate: 0.01, n_iterations: 1000, C: 1}
+    - {learning_rate: 0.05, n_iterations: 3000, C: 1}
+    - {learning_rate: 0.05, n_iterations: 1000, C: 10}
+    - {learning_rate: 0.1, n_iterations: 3000, C: 10}
+    - {learning_rate: 0.01, n_iterations: 1000, C: 50}
+    - {learning_rate: 0.05, n_iterations: 3000, C: 50}
+    - {learning_rate: 0.01, n_iterations: 3000, C: 100}
+
+naive_bayes:
+  alpha: [1.0, 0.01, 0.1, 0.5, 2.0]
+
+features:
+  analyzer: word
+  ngram_range: [1, 2]
+  max_features: 50000

@@ -3,26 +3,34 @@ __pycache__/
 .venv/
 venv/
 .ipynb_checkpoints/
-Lab01/models/
-Lab01/reports/*
-!Lab01/reports/preprocessing_summary.md
-!Lab01/reports/training_summary.md
+tmp/
 
-# Keep only the sample run's evaluation files in Git.
-Lab01/results/eda/
-Lab01/results/runs/*
-!Lab01/results/runs/20261106T172203Z-a2e0309c/
-Lab01/results/runs/20261106T172203Z-a2e0309c/*
-!Lab01/results/runs/20261106T172203Z-a2e0309c/evaluation/
+# Generated experiments stay local. Keep one reproducible reference per lab.
+Lab01/results/*
+!Lab01/results/20261118_212649_baseline_tuned/
+Lab01/results_runs/
+Lab02/results/runs/*
+!Lab02/results/runs/2026-11-18_21-14-12/
+Lab03/results/runs/*
+!Lab03/results/runs/2026-11-18_21-27-27/
+
+# Published convenience models can be recreated from reference runs.
+Lab01/models/
+Lab02/models/
 Lab01/Data/preprocessing/09_tfidf/tfidf_vectorizer.joblib
 
-# Generated Lab01 experiments (Vietnam time run IDs).
-Lab01/results_runs/
-
-
-# Lab03 keeps one updated reference run; other runs are reproducible local outputs.
-Lab03/results/runs/*
-
-
-
-!Lab03/results/runs/2026-11-18_19-38-16/
+# Publish only the reference report and its figures; histories and archives stay local.
+Lab01/reports/*
+!Lab01/reports/report_20261118_212649_baseline_tuned.md
+!Lab01/reports/report_20261118_212649_baseline_tuned.html
+!Lab01/reports/report_20261118_212649_baseline_tuned.pdf
+!Lab01/reports/figures/
+Lab01/reports/figures/*
+!Lab01/reports/figures/20261118_212649_baseline_tuned/
+Lab02/reports/*
+!Lab02/reports/report_2026-11-18_21-14-12.md
+!Lab02/reports/report_2026-11-18_21-14-12.html
+!Lab02/reports/report_2026-11-18_21-14-12.pdf
+!Lab02/reports/figures/
+Lab02/reports/figures/*
+!Lab02/reports/figures/2026-11-18_21-14-12/

@@ -80,8 +80,11 @@ def split_clean_data(output_dir=PREPROCESSING_DIR):
         print(f"{name}: {len(split)} emails, {labels.value_counts().sort_index().to_dict()}")
 
 
-def build_vectorizer():
-    return TfidfVectorizer(ngram_range=(1, 2), max_features=50_000)
+def build_vectorizer(settings=None):
+    options = dict(ngram_range=(1, 2), max_features=50_000)
+    options.update(settings or {})
+    options["ngram_range"] = tuple(options["ngram_range"])
+    return TfidfVectorizer(**options)
 
 
 def vectorize_clean_splits(output_dir=PREPROCESSING_DIR):

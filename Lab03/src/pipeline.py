@@ -3,6 +3,7 @@ import json
 import shutil
 from datetime import datetime, timedelta, timezone
 from hashlib import sha256
+from time import perf_counter
 import joblib
 import pandas as pd
 import yaml
@@ -19,6 +20,7 @@ from .analysis import (describe_segments, gender_distribution, stability_analysi
 
 def run_pipeline():
     config = yaml.safe_load((LAB_DIR / "src/config.yaml").read_text(encoding="utf-8"))
+    started = perf_counter()
     now = datetime.now(timezone(timedelta(hours=7)))
     base_id = now.strftime("%Y-%m-%d_%H-%M-%S")
     sequence = 1
@@ -35,14 +37,23 @@ def run_pipeline():
     for name in ["model", "clusters", "k_selection", "validation"]:
         (run / name).mkdir()
     manifest = {"run_id": run_id, "status": "running", "timestamp_timezone": "Asia/Ho_Chi_Minh", "started_at": now.isoformat()}
+    def log(stage, status="started"):
+        event = {"stage": stage, "status": status,
+                 "time": datetime.now(timezone(timedelta(hours=7))).isoformat()}
+        with (run / "events.jsonl").open("a", encoding="utf-8") as stream:
+            stream.write(json.dumps(event) + "\n")
+    (run / "run.json").write_text(json.dumps(manifest, indent=2), encoding="utf-8")
     try:
+        log("run")
         (run / "config.yaml").write_text(yaml.safe_dump(config), encoding="utf-8")
         source = LAB_DIR / config["data"]["path"]
         manifest["dataset_sha256"] = sha256(source.read_bytes()).hexdigest()
         raw = pd.read_csv(source)
         features = config["data"]["features"]
+        log("eda_and_preprocessing")
         analyze(raw, features, figures)
         frame, X, scaling = prepare_data(config, run / "preprocessing")
+        log("k_selection")
         model, comparison = tune(X, config["kmeans"])
         comparison.to_csv(run / "k_selection/k_comparison.csv", index=False)
         customers = frame.assign(cluster=model.labels_, silhouette=silhouette_samples(X, model.labels_))
@@ -59,6 +70,7 @@ def run_pipeline():
         gender_distribution(customers).to_csv(run / "clusters/gender_by_cluster.csv",index=False)
         plot_income_spending(customers,features,figures / "income_spending.png")
         plot_silhouette(customers,figures / "silhouette_clusters.png")
+        log("stability_and_hierarchical_comparison")
         print("Checking multiple seeds...",flush=True)
         stability, pairs = stability_analysis(X,config["kmeans"],config["analysis"]["seeds"],
                                              model.labels_,model.n_clusters)
@@ -75,6 +87,7 @@ def run_pipeline():
         hierarchy_scores = pd.concat([hierarchy_scores,pd.DataFrame(subset_rows)],ignore_index=True)
         hierarchy_scores.to_csv(run / "validation/algorithm_comparison.csv",index=False)
         frame.iloc[indices].assign(cluster=hierarchy.labels_).to_csv(run / "validation/hierarchical_clusters.csv",index=False)
+        log("visualization_and_export")
         plot_dendrogram(hierarchy, figures / "dendrogram.png")
         plot_comparison(comparison, figures / "silhouette_by_k.png")
         plot_clusters(customers, features, config["data"]["id_column"],
@@ -90,11 +103,15 @@ def run_pipeline():
         print(comparison.to_string(index=False))
         print("Selected K:", model.n_clusters)
         print("Run:", run)
+        log("run", "success")
         return run
     except BaseException as error:
         manifest.update(status="failed", error=str(error))
+        log("run", "failed")
         raise
     finally:
+        manifest.update(finished_at=datetime.now(timezone(timedelta(hours=7))).isoformat(),
+                        duration_seconds=perf_counter()-started)
         (run / "run.json").write_text(json.dumps(manifest, indent=2), encoding="utf-8")
 
 

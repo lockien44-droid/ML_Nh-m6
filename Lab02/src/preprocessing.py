@@ -5,7 +5,8 @@ import pandas as pd
 
 LAB = Path(__file__).resolve().parents[1]
 NUMERIC = ["lag_1", "lag_7", "mean_7", "mean_28", "month", "weekday", "day_of_year"]
-FEATURES = ["StockCode"] + NUMERIC
+HISTORY = ["median_7", "median_28", "std_7", "std_28", "zero_days_28", "same_weekday_mean_4"]
+FEATURES = ["StockCode"] + NUMERIC + HISTORY
 
 
 def prepare_data(config, output):
@@ -18,6 +19,7 @@ def prepare_data(config, output):
         raise ValueError("top_products must be a positive integer.")
     raw = pd.read_csv(LAB / config["data"]["path"], encoding=config["data"]["encoding"],
                       dtype={"InvoiceNo": str, "StockCode": str})
+    original_rows = len(raw)
     raw["InvoiceDate"] = pd.to_datetime(raw["InvoiceDate"], format="%m/%d/%Y %H:%M", errors="coerce")
     raw["Quantity"] = pd.to_numeric(raw["Quantity"], errors="coerce")
     raw["UnitPrice"] = pd.to_numeric(raw["UnitPrice"], errors="coerce")
@@ -41,6 +43,12 @@ def prepare_data(config, output):
     frame["lag_7"] = grouped.shift(7)
     frame["mean_7"] = grouped.transform(lambda s: s.shift(1).rolling(7).mean())
     frame["mean_28"] = grouped.transform(lambda s: s.shift(1).rolling(28).mean())
+    # Every statistic excludes the target day, including weekday seasonality.
+    for window in (7, 28):
+        frame[f"median_{window}"] = grouped.transform(lambda s: s.shift(1).rolling(window).median())
+        frame[f"std_{window}"] = grouped.transform(lambda s: s.shift(1).rolling(window).std(ddof=0))
+    frame["zero_days_28"] = grouped.transform(lambda s: s.shift(1).rolling(28).apply(lambda x: (x == 0).sum(), raw=True))
+    frame["same_weekday_mean_4"] = sum(grouped.shift(lag) for lag in (7, 14, 21, 28)) / 4
     frame["month"] = frame["date"].dt.month
     frame["weekday"] = frame["date"].dt.dayofweek
     frame["day_of_year"] = frame["date"].dt.dayofyear
@@ -54,7 +62,7 @@ def prepare_data(config, output):
         if part.empty:
             raise ValueError(f"Empty {name} split.")
         part.to_csv(output / f"{name}.csv", index=False)
-    summary = {"raw_rows": len(raw), "clean_transaction_rows": len(clean),
+    summary = {"raw_rows": original_rows, "deduplicated_rows": len(raw), "duplicate_rows_removed": original_rows - len(raw), "clean_transaction_rows": len(clean),
                "products": list(products), "train_end": str(train_end.date()),
                "validation_end": str(validation_end.date()),
                "target": "positive units sold per product/day"}
@@ -63,6 +71,7 @@ def prepare_data(config, output):
 
 def expand_history_features(frame):
     frame = frame.copy()
+    frame["is_weekend"] = (frame["weekday"] >= 5).astype(float)
     frame["trend_7_28"] = frame["mean_7"] - frame["mean_28"]
     frame["recent_change"] = frame["lag_1"] - frame["mean_7"]
     frame["weekly_change"] = frame["lag_1"] - frame["lag_7"]
@@ -73,13 +82,15 @@ class Preprocessor:
     """Learn medians, scaling and product vocabulary from training rows."""
 
     def __init__(self, feature_set="basic"):
-        if feature_set not in ("basic", "trend"):
+        if feature_set not in ("basic", "trend", "robust"):
             raise ValueError("Unknown feature set.")
         self.feature_set = feature_set
 
     def fit(self, frame):
         self.numeric = NUMERIC + (["trend_7_28", "recent_change", "weekly_change"]
-                                  if self.feature_set == "trend" else [])
+                                  if self.feature_set in ("trend", "robust") else [])
+        if self.feature_set == "robust":
+            self.numeric += HISTORY + ["is_weekend"]
         values = expand_history_features(frame)[self.numeric].to_numpy(dtype=float)
         if len(values) == 0 or np.isinf(values).any():
             raise ValueError("Training features must be nonempty and contain no infinities.")

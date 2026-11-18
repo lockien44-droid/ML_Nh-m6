@@ -1,0 +1,165 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><title>Lab02 - Product Sales Prediction - 2026-11-18_21-14-12</title><style>body{font:16px system-ui;max-width:1100px;margin:auto;padding:2rem}table{border-collapse:collapse;width:100%}td,th{padding:.5rem;border:1px solid #ddd}img{max-width:100%}pre{white-space:pre-wrap}figure{margin:2rem 0}</style><h1>Lab02 - Product Sales Prediction - 2026-11-18_21-14-12</h1><p>Daily positive units sold for 20 selected products. Configuration selected using expanding-window and held-out validation RMSE. Final fit uses train plus validation. Test predicts one day ahead with observed past sales.</p><h2>Test metrics</h2><table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th>model</th>
+      <th>fit_seconds</th>
+      <th>mae</th>
+      <th>mse</th>
+      <th>rmse</th>
+      <th>r2</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>linear_regression</td>
+      <td>0.2675</td>
+      <td>76.3529</td>
+      <td>45557.5353</td>
+      <td>213.4421</td>
+      <td>0.1087</td>
+    </tr>
+    <tr>
+      <td>decision_tree</td>
+      <td>0.1081</td>
+      <td>77.5818</td>
+      <td>47927.7569</td>
+      <td>218.9241</td>
+      <td>0.0623</td>
+    </tr>
+    <tr>
+      <td>random_forest</td>
+      <td>8.3417</td>
+      <td>78.4745</td>
+      <td>46317.0759</td>
+      <td>215.2140</td>
+      <td>0.0938</td>
+    </tr>
+    <tr>
+      <td>gradient_boosting</td>
+      <td>1.7710</td>
+      <td>87.9482</td>
+      <td>50810.1504</td>
+      <td>225.4111</td>
+      <td>0.0059</td>
+    </tr>
+    <tr>
+      <td>mean_baseline</td>
+      <td>0.0000</td>
+      <td>95.7001</td>
+      <td>51121.7215</td>
+      <td>226.1011</td>
+      <td>-0.0002</td>
+    </tr>
+    <tr>
+      <td>last_week_baseline</td>
+      <td>0.0000</td>
+      <td>96.2567</td>
+      <td>77078.8940</td>
+      <td>277.6309</td>
+      <td>-0.5081</td>
+    </tr>
+    <tr>
+      <td>rolling_7_baseline</td>
+      <td>0.0000</td>
+      <td>89.0090</td>
+      <td>50427.5084</td>
+      <td>224.5607</td>
+      <td>0.0134</td>
+    </tr>
+    <tr>
+      <td>rolling_28_baseline</td>
+      <td>0.0000</td>
+      <td>82.1792</td>
+      <td>46341.1126</td>
+      <td>215.2699</td>
+      <td>0.0933</td>
+    </tr>
+    <tr>
+      <td>weekday_4_baseline</td>
+      <td>0.0000</td>
+      <td>85.3017</td>
+      <td>52048.3475</td>
+      <td>228.1411</td>
+      <td>-0.0183</td>
+    </tr>
+    <tr>
+      <td>product_mean_baseline</td>
+      <td>0.0000</td>
+      <td>95.4789</td>
+      <td>52808.5168</td>
+      <td>229.8010</td>
+      <td>-0.0332</td>
+    </tr>
+  </tbody>
+</table><h2>Selected parameters</h2><pre>{
+  &quot;linear_regression&quot;: {
+    &quot;alpha&quot;: 100.0,
+    &quot;learning_rate&quot;: 0.1,
+    &quot;n_iterations&quot;: 3000,
+    &quot;feature_set&quot;: &quot;robust&quot;
+  },
+  &quot;decision_tree&quot;: {
+    &quot;max_depth&quot;: 5,
+    &quot;min_samples_leaf&quot;: 10,
+    &quot;feature_set&quot;: &quot;trend&quot;
+  },
+  &quot;random_forest&quot;: {
+    &quot;n_estimators&quot;: 60,
+    &quot;max_depth&quot;: 10,
+    &quot;min_samples_leaf&quot;: 5,
+    &quot;feature_set&quot;: &quot;trend&quot;
+  },
+  &quot;gradient_boosting&quot;: {
+    &quot;n_estimators&quot;: 60,
+    &quot;max_depth&quot;: 2,
+    &quot;learning_rate&quot;: 0.05,
+    &quot;feature_set&quot;: &quot;trend&quot;
+  }
+}</pre><h2>Analysis and limitations</h2><p>Mô hình được chọn bằng dữ liệu phát triển là random_forest. RMSE test 215.2140, R² 0.0938. Mức giảm RMSE so với baseline trung bình là 4.82%.</p><p>R² thấp cho thấy mô hình còn hạn chế trong giải thích biến động doanh số. Không dùng bảng test để chọn lại cấu hình.</p><p>Top sản phẩm được cố định từ toàn bộ train trước walk-forward. Các fold kiểm chứng dự báo trong phạm vi sản phẩm này, chưa mô phỏng việc chọn lại danh mục tại từng mốc quá khứ.</p><p>Không có giao dịch được quy ước là 0, nhưng dữ liệu không phân biệt hết hàng, đóng cửa và không có nhu cầu. Hai ngày biên bị loại theo giả định dữ liệu có thể chưa đủ ngày.</p><p>Các đặc trưng robust gồm trung vị, độ lệch chuẩn 7/28 ngày, số ngày doanh số 0, trung bình cùng thứ bốn tuần và cuối tuần. Tất cả chỉ dùng lịch sử trước ngày dự báo.</p><p>Mô hình cải thiện RMSE so với baseline trung bình trên 17/20 sản phẩm. Xem evaluation/product_baseline_comparison.csv để đối chiếu từng sản phẩm với các baseline lịch sử.</p><p>Baseline trung bình 28 ngày đạt RMSE 215.2699, trong khi mô hình được chọn đạt 215.2140. Chênh lệch nhỏ cho thấy lợi ích hiện tại của mô hình phức tạp còn hạn chế.</p><p>So sánh trước/sau được lưu trong evaluation/before_after.csv. Đây là đối chiếu mô tả trên cùng test, không phải bằng chứng cải thiện trên một tập test mới độc lập.</p><table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th>StockCode</th>
+      <th>date</th>
+      <th>sales</th>
+      <th>predicted</th>
+      <th>absolute_error</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>84077</td>
+      <td>2011-10-27</td>
+      <td>4848</td>
+      <td>146.15</td>
+      <td>4701.85</td>
+    </tr>
+    <tr>
+      <td>22197</td>
+      <td>2011-12-08</td>
+      <td>3111</td>
+      <td>174.30</td>
+      <td>2936.70</td>
+    </tr>
+    <tr>
+      <td>22197</td>
+      <td>2011-10-28</td>
+      <td>2065</td>
+      <td>124.80</td>
+      <td>1940.20</td>
+    </tr>
+    <tr>
+      <td>22197</td>
+      <td>2011-11-07</td>
+      <td>2012</td>
+      <td>147.10</td>
+      <td>1864.90</td>
+    </tr>
+    <tr>
+      <td>22197</td>
+      <td>2011-11-14</td>
+      <td>1767</td>
+      <td>186.99</td>
+      <td>1580.01</td>
+    </tr>
+  </tbody>
+</table><h2>Figures</h2><figure><img src="figures/2026-11-18_21-14-12/eda/daily_sales.png" alt="daily_sales"><figcaption>daily_sales</figcaption></figure><figure><img src="figures/2026-11-18_21-14-12/evaluation/decision_tree.png" alt="decision_tree"><figcaption>decision_tree</figcaption></figure><figure><img src="figures/2026-11-18_21-14-12/evaluation/gradient_boosting.png" alt="gradient_boosting"><figcaption>gradient_boosting</figcaption></figure><figure><img src="figures/2026-11-18_21-14-12/evaluation/last_week_baseline.png" alt="last_week_baseline"><figcaption>last_week_baseline</figcaption></figure><figure><img src="figures/2026-11-18_21-14-12/evaluation/linear_regression.png" alt="linear_regression"><figcaption>linear_regression</figcaption></figure><figure><img src="figures/2026-11-18_21-14-12/evaluation/mean_baseline.png" alt="mean_baseline"><figcaption>mean_baseline</figcaption></figure><figure><img src="figures/2026-11-18_21-14-12/training/metrics_comparison.png" alt="metrics_comparison"><figcaption>metrics_comparison</figcaption></figure><figure><img src="figures/2026-11-18_21-14-12/evaluation/product_mean_baseline.png" alt="product_mean_baseline"><figcaption>product_mean_baseline</figcaption></figure><figure><img src="figures/2026-11-18_21-14-12/evaluation/random_forest.png" alt="random_forest"><figcaption>random_forest</figcaption></figure><figure><img src="figures/2026-11-18_21-14-12/evaluation/rolling_28_baseline.png" alt="rolling_28_baseline"><figcaption>rolling_28_baseline</figcaption></figure><figure><img src="figures/2026-11-18_21-14-12/evaluation/rolling_7_baseline.png" alt="rolling_7_baseline"><figcaption>rolling_7_baseline</figcaption></figure><figure><img src="figures/2026-11-18_21-14-12/evaluation/weekday_4_baseline.png" alt="weekday_4_baseline"><figcaption>weekday_4_baseline</figcaption></figure></html>

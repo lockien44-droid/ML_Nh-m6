@@ -1,0 +1,46 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><title>Lab01 training report - 20261118_212649_baseline_tuned</title><style>body{font:16px system-ui;max-width:1100px;margin:auto;padding:2rem}td,th{padding:.5rem;border-bottom:1px solid #ddd}img{max-width:100%}</style><h1>Lab01 training report - 20261118_212649_baseline_tuned</h1><p>Models and TF-IDF fitted on subtrain; configurations and thresholds selected on validation; no refit before test. LR threshold comparison uses saved validation results.</p><table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th>Model</th>
+      <th>Accuracy</th>
+      <th>Macro F1</th>
+      <th>Precision</th>
+      <th>Recall</th>
+      <th>Spam F1</th>
+      <th>FN</th>
+      <th>FP</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Logistic Regression</td>
+      <td>99.18%</td>
+      <td>99.02%</td>
+      <td>98.29%</td>
+      <td>98.97%</td>
+      <td>98.63%</td>
+      <td>3</td>
+      <td>5</td>
+    </tr>
+    <tr>
+      <td>Naive Bayes</td>
+      <td>98.26%</td>
+      <td>97.93%</td>
+      <td>96.28%</td>
+      <td>97.94%</td>
+      <td>97.10%</td>
+      <td>6</td>
+      <td>11</td>
+    </tr>
+    <tr>
+      <td>Linear SVM</td>
+      <td>98.46%</td>
+      <td>98.18%</td>
+      <td>96.00%</td>
+      <td>98.97%</td>
+      <td>97.46%</td>
+      <td>3</td>
+      <td>12</td>
+    </tr>
+  </tbody>
+</table><figure><img src="figures/20261118_212649_baseline_tuned/eda/email_length_distribution.png" alt="email_length_distribution"></figure><figure><img src="figures/20261118_212649_baseline_tuned/eda/label_distribution.png" alt="label_distribution"></figure><figure><img src="figures/20261118_212649_baseline_tuned/eda/missing_values.png" alt="missing_values"></figure><figure><img src="figures/20261118_212649_baseline_tuned/eda/overview.png" alt="overview"></figure><figure><img src="figures/20261118_212649_baseline_tuned/evaluation/confusion_matrix_all.png" alt="confusion_matrix_all"></figure><figure><img src="figures/20261118_212649_baseline_tuned/evaluation/confusion_matrix_lr.png" alt="confusion_matrix_lr"></figure><figure><img src="figures/20261118_212649_baseline_tuned/evaluation/confusion_matrix_nb.png" alt="confusion_matrix_nb"></figure><figure><img src="figures/20261118_212649_baseline_tuned/evaluation/confusion_matrix_svm.png" alt="confusion_matrix_svm"></figure><figure><img src="figures/20261118_212649_baseline_tuned/evaluation/metrics_comparison.png" alt="metrics_comparison"></figure><figure><img src="figures/20261118_212649_baseline_tuned/evaluation/roc_curve_all.png" alt="roc_curve_all"></figure><figure><img src="figures/20261118_212649_baseline_tuned/evaluation/tpr_fpr_comparison.png" alt="tpr_fpr_comparison"></figure><figure><img src="figures/20261118_212649_baseline_tuned/preprocessing/cleaning_comparison.png" alt="cleaning_comparison"></figure><figure><img src="figures/20261118_212649_baseline_tuned/preprocessing/preprocessing_steps.png" alt="preprocessing_steps"></figure><figure><img src="figures/20261118_212649_baseline_tuned/preprocessing/tfidf_sparsity.png" alt="tfidf_sparsity"></figure><figure><img src="figures/20261118_212649_baseline_tuned/preprocessing/tfidf_top_features.png" alt="tfidf_top_features"></figure><figure><img src="figures/20261118_212649_baseline_tuned/preprocessing/train_test_distribution.png" alt="train_test_distribution"></figure><figure><img src="figures/20261118_212649_baseline_tuned/training/training_configuration.png" alt="training_configuration"></figure><figure><img src="figures/20261118_212649_baseline_tuned/training/training_dataset_overview.png" alt="training_dataset_overview"></figure><figure><img src="figures/20261118_212649_baseline_tuned/training/training_time_comparison.png" alt="training_time_comparison"></figure></html>

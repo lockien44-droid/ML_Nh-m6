@@ -79,7 +79,7 @@ Biểu đồ Income × Spending và Plotly 3D dùng đơn vị gốc, thu nhập
 
 *Hình 7. Thêm trục tuổi giúp đọc các nhóm chồng lấn trên biểu đồ hai chiều.*
 
-[Biểu đồ 3D có thể xoay và thu phóng](../results/runs/2026-11-18_19-38-16/figures/customer_clusters_3d.html)
+[Biểu đồ 3D có thể xoay và thu phóng](../results/runs/2026-11-18_21-27-27/figures/customer_clusters_3d.html)
 
 ![Silhouette của từng khách theo cụm](images/silhouette_clusters.png)
 
@@ -158,6 +158,6 @@ Kết quả nhiều seed đánh giá sự ổn định khởi tạo trên cùng 
 
 ## 11. Tái lập và phần chưa thực hiện
 
-Lần chạy tham chiếu 2026-11-18_19-38-16. YAML và hash nguồn giúp xác định cấu hình và dữ liệu. Chạy python -m Lab03.src.pipeline để tạo một lần chạy mới. Notebook trình bày từng bước và bảng kết quả.
+Lần chạy tham chiếu 2026-11-18_21-27-27. YAML và hash nguồn giúp xác định cấu hình và dữ liệu. Chạy python -m Lab03.src.pipeline để tạo một lần chạy mới. Notebook trình bày từng bước và bảng kết quả.
 
 Bài bổ sung phân đoạn ảnh chưa thực hiện trong báo cáo này.

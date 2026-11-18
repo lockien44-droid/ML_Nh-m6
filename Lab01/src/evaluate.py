@@ -33,3 +33,20 @@ def evaluate(y_true, y_pred, email_ids, output_dir):
     figure.savefig(output_dir / "confusion_matrix.png", dpi=150)
     return {**metrics, "spam_precision": report["spam"]["precision"],
             "spam_recall": report["spam"]["recall"], "spam_f1": report["spam"]["f1-score"]}
+
+
+def save_errors(model, X, frame, output):
+    details = frame[["email_id", "text_clean", "label_num"]].copy().reset_index(drop=True)
+    details["predicted"] = model.predict(X)
+    if hasattr(model, "predict_proba"):
+        details["score"] = model.predict_proba(X)
+    elif hasattr(model, "decision_function"):
+        details["score"] = model.decision_function(X)
+    else:
+        scores = X @ model.feature_log_prob.T + model.class_log_prior
+        details["score"] = scores[:, 1] - scores[:, 0]
+    details["threshold"] = getattr(model, "threshold", 0.0)
+    details = details.loc[details.label_num != details.predicted]
+    details["error_type"] = details.predicted.map({0: "FN", 1: "FP"})
+    output.mkdir(parents=True, exist_ok=True)
+    details.to_csv(output / "errors.csv", index=False)

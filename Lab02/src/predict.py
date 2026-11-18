@@ -22,7 +22,11 @@ def sample_from_history(path, product, date):
         raise ValueError("Provide 28 consecutive past days with finite nonnegative sales.")
     return {"StockCode": product, "date": str(day.date()), "lag_1": float(sales.iloc[-1]),
             "lag_7": float(sales.iloc[-7]), "mean_7": float(sales.iloc[-7:].mean()),
-            "mean_28": float(sales.mean())}
+            "mean_28": float(sales.mean()),
+            "median_7": float(sales.iloc[-7:].median()), "median_28": float(sales.median()),
+            "std_7": float(sales.iloc[-7:].std(ddof=0)), "std_28": float(sales.std(ddof=0)),
+            "zero_days_28": int((sales == 0).sum()),
+            "same_weekday_mean_4": float(sales.iloc[[0, 7, 14, 21]].mean())}
 
 
 def main():
@@ -50,13 +54,16 @@ def main():
     if pd.isna(day):
         parser.error("date must be a valid date.")
     sample.update(month=day.month, weekday=day.dayofweek, day_of_year=day.dayofyear)
-    frame = pd.DataFrame([sample])
-    values = frame[FEATURES[1:]].to_numpy(dtype=float)
+    frame = pd.DataFrame([sample]).reindex(columns=["date"] + FEATURES)
+    values = frame[FEATURES[1:8]].to_numpy(dtype=float)
     if not np.isfinite(values).all() or (values[:, :4] < 0).any():
         parser.error("Lag and rolling features must be finite and nonnegative.")
     selected = json.loads((LAB / "models/selection.json").read_text())
     name = args.model or selected["winner"]
     model = joblib.load(LAB / "models" / f"{name}.joblib")
+    robust_values = frame[FEATURES[8:]].to_numpy(dtype=float)
+    if model.preprocessor.feature_set == "robust" and (not np.isfinite(robust_values).all() or (robust_values < 0).any()):
+        parser.error("This model needs complete rolling statistics. Use --history with 28 past days.")
     result = {"model": name, "predicted_units": float(max(0, model.predict(frame[FEATURES])[0]))}
     history = LAB / "reports/inference_history.csv"
     history.parent.mkdir(parents=True, exist_ok=True)

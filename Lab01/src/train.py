@@ -1,9 +1,16 @@
-"""Training diagnostics and the original Lab01 command-line entry point."""
+"""Shared model training and training diagnostics for Lab01."""
 
 import numpy as np
 import pandas as pd
 
 from ..algorithms import LogisticRegression
+
+
+def train_model(model, X, y, trace_path=None):
+    """Fit one estimator, optionally recording iterative training diagnostics."""
+    if trace_path is not None:
+        return trace_fit(model, X, y, trace_path)
+    return model.fit(X, y)
 
 
 def trace_fit(model, X, y, path):

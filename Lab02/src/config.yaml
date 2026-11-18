@@ -24,6 +24,18 @@ models:
     learning_rate: 0.1
     n_iterations: 3000
     feature_set: trend
+  - alpha: 1.0
+    learning_rate: 0.1
+    n_iterations: 3000
+    feature_set: robust
+  - alpha: 10.0
+    learning_rate: 0.1
+    n_iterations: 3000
+    feature_set: robust
+  - alpha: 100.0
+    learning_rate: 0.1
+    n_iterations: 3000
+    feature_set: robust
   decision_tree:
   - max_depth: 5
     min_samples_leaf: 10
@@ -37,6 +49,24 @@ models:
   - max_depth: 10
     min_samples_leaf: 20
     feature_set: trend
+  - max_depth: 4
+    min_samples_leaf: 20
+    feature_set: trend
+  - max_depth: 4
+    min_samples_leaf: 20
+    feature_set: robust
+  - max_depth: 8
+    min_samples_leaf: 10
+    feature_set: trend
+  - max_depth: 8
+    min_samples_leaf: 10
+    feature_set: robust
+  - max_depth: 12
+    min_samples_leaf: 5
+    feature_set: trend
+  - max_depth: 12
+    min_samples_leaf: 5
+    feature_set: robust
   random_forest:
   - n_estimators: 60
     max_depth: 10
@@ -46,6 +76,26 @@ models:
     max_depth: 10
     min_samples_leaf: 5
     feature_set: trend
+  - n_estimators: 40
+    max_depth: 6
+    min_samples_leaf: 10
+    feature_set: trend
+  - n_estimators: 40
+    max_depth: 6
+    min_samples_leaf: 10
+    feature_set: robust
+  - n_estimators: 60
+    max_depth: 10
+    min_samples_leaf: 5
+    feature_set: robust
+  - n_estimators: 80
+    max_depth: 14
+    min_samples_leaf: 10
+    feature_set: trend
+  - n_estimators: 80
+    max_depth: 14
+    min_samples_leaf: 10
+    feature_set: robust
   gradient_boosting:
   - n_estimators: 60
     max_depth: 2
@@ -63,3 +113,23 @@ models:
     max_depth: 2
     learning_rate: 0.05
     feature_set: trend
+  - n_estimators: 60
+    max_depth: 2
+    learning_rate: 0.05
+    feature_set: robust
+  - n_estimators: 100
+    max_depth: 2
+    learning_rate: 0.05
+    feature_set: robust
+  - n_estimators: 80
+    max_depth: 3
+    learning_rate: 0.05
+    feature_set: robust
+  - n_estimators: 100
+    max_depth: 2
+    learning_rate: 0.1
+    feature_set: robust
+experiment:
+  product_scope: fixed_top_products_selected_from_full_train
+  selection: mean_rmse_three_expanding_folds_and_validation
+  forecast: rolling_one_day_ahead

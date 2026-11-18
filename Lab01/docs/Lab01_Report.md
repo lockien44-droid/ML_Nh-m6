@@ -1,6 +1,6 @@
 # Báo cáo Lab01 — Phân loại email spam bằng TF-IDF
 
-Tài liệu đối chiếu với lần chạy **`20261113_024910_baseline_tuned`**, bắt đầu lúc **02:49:10 ngày 13/11/2026, giờ Việt Nam (UTC+7)**. Trạng thái: `success`. Các bảng và hình dưới đây cùng thuộc lần chạy này; số hiển thị được làm tròn, còn file kết quả giữ giá trị đầy đủ.
+Tài liệu đối chiếu với lần chạy **`20261118_212649_baseline_tuned`**, bắt đầu lúc **21:26:49 ngày 18/11/2026, giờ Việt Nam (UTC+7)**. Trạng thái: `success`. Các bảng và hình dưới đây cùng thuộc lần chạy này; số hiển thị được làm tròn, còn file kết quả giữ giá trị đầy đủ.
 
 ## 1. Xác định bài toán và mục tiêu
 
@@ -22,9 +22,9 @@ Nguồn là [spam_ham_dataset.csv](../Data/raw/spam_ham_dataset.csv). `text` ch�
 | Bản trùng bị loại | 287 |
 | Email còn lại | 4.884 |
 
-Sau làm sạch còn **3.427 ham và 1.457 spam**. Loại trùng theo văn bản sạch trước khi chia tập để tránh cùng nội dung xuất hiện ở nhiều tập. Nếu cùng văn bản sạch có nhãn mâu thuẫn, chương trình báo lỗi. [Thống kê làm sạch của lần chạy](../results/20261113_024910_baseline_tuned/preprocessing/summary.json).
+Sau làm sạch còn **3.427 ham và 1.457 spam**. Loại trùng theo văn bản sạch trước khi chia tập để tránh cùng nội dung xuất hiện ở nhiều tập. Nếu cùng văn bản sạch có nhãn mâu thuẫn, chương trình báo lỗi. [Thống kê làm sạch của lần chạy](../results/20261118_212649_baseline_tuned/preprocessing/summary.json).
 
-![Phân bố nhãn dữ liệu thô](../reports/figures/20261113_024910_baseline_tuned/eda/label_distribution.png)
+![Phân bố nhãn dữ liệu thô](../reports/figures/20261118_212649_baseline_tuned/eda/label_distribution.png)
 
 Hình EDA mô tả dữ liệu thô, được xuất khi tạo báo cáo. Bảng trên mô tả dữ liệu sau bước làm sạch.
 
@@ -41,13 +41,13 @@ Chia 80% train ban đầu và 20% test, phân tầng theo nhãn, seed `42`. Tác
 
 **Không fit lại trên train + validation sau khi chọn cấu hình/ngưỡng.** Cả baseline và tuned giữ nguyên trọng số học trên subtrain. [Code chia và chọn mô hình](../src/tuning.py).
 
-![Phân bố subtrain, validation và test](../reports/figures/20261113_024910_baseline_tuned/preprocessing/train_test_distribution.png)
+![Phân bố subtrain, validation và test](../reports/figures/20261118_212649_baseline_tuned/preprocessing/train_test_distribution.png)
 
 ## 5. Làm sạch email
 
 `clean_text()` giải mã HTML entity, bỏ thẻ HTML và nội dung script/style, chuyển chữ thường, thay dấu câu bằng khoảng trắng và loại từ dừng tiếng Anh. Ví dụ `<b>FREE</b> Offer!!!` trở thành `free offer`. Các dấu `!`, `$` không trở thành đặc trưng trực tiếp. Cùng hàm được dùng khi dự đoán email mới. [Mã tiền xử lý](../src/preprocessing.py).
 
-![Văn bản trước và sau làm sạch](../reports/figures/20261113_024910_baseline_tuned/preprocessing/cleaning_comparison.png)
+![Văn bản trước và sau làm sạch](../reports/figures/20261118_212649_baseline_tuned/preprocessing/cleaning_comparison.png)
 
 ## 6. Biểu diễn TF-IDF
 
@@ -59,9 +59,9 @@ Học bộ từ vựng và IDF **duy nhất trên subtrain**, dùng từ đơn/c
 | validation | 782 × 50.000 | 70.784 | 0,181% |
 | test | 977 × 50.000 | 85.955 | 0,176% |
 
-Ma trận thưa CSR giữ các giá trị khác 0 và chỉ số tương ứng. `09_tfidf/X_train.npz` và `y_train.csv` tương ứng **subtrain_clean.csv**, còn `train_clean.csv` chứa train ban đầu. `X_validation.npz`/`y_validation.csv` và `X_test.npz`/`y_test.csv` giữ hai tập còn lại. [Thống kê TF-IDF](../results/20261113_024910_baseline_tuned/preprocessing/split_tfidf_summary.json) và [Vai trò các ma trận](../results/20261113_024910_baseline_tuned/preprocessing/09_tfidf/metadata.json).
+Ma trận thưa CSR giữ các giá trị khác 0 và chỉ số tương ứng. `09_tfidf/X_train.npz` và `y_train.csv` tương ứng **subtrain_clean.csv**, còn `train_clean.csv` chứa train ban đầu. `X_validation.npz`/`y_validation.csv` và `X_test.npz`/`y_test.csv` giữ hai tập còn lại. [Thống kê TF-IDF](../results/20261118_212649_baseline_tuned/preprocessing/split_tfidf_summary.json) và [Vai trò các ma trận](../results/20261118_212649_baseline_tuned/preprocessing/09_tfidf/metadata.json).
 
-![Mật độ TF-IDF theo từng tập](../reports/figures/20261113_024910_baseline_tuned/preprocessing/tfidf_sparsity.png)
+![Mật độ TF-IDF theo từng tập](../reports/figures/20261118_212649_baseline_tuned/preprocessing/tfidf_sparsity.png)
 
 ## 7. Baseline và luồng thực nghiệm
 
@@ -75,7 +75,7 @@ Luồng chạy:
 4. Giữ nguyên TF-IDF cùng các mô hình đã fit; không huấn luyện lại.
 5. Đánh giá cả baseline và tuned trên test ở cuối, rồi xuất bảng trước/sau.
 
-[Baseline trên validation](../results/20261113_024910_baseline_tuned/evaluation/comparison/baseline_validation.csv) được tạo trước tuning. Bảng dưới là baseline trên **test**, được đánh giá sau khi đã chốt lựa chọn:
+[Baseline trên validation](../results/20261118_212649_baseline_tuned/evaluation/comparison/baseline_validation.csv) được tạo trước tuning. Bảng dưới là baseline trên **test**, được đánh giá sau khi đã chốt lựa chọn:
 
 | Baseline | Accuracy test | Macro-F1 test | F1 spam | FN | FP |
 | --- | --- | --- | --- | --- | --- |
@@ -83,7 +83,7 @@ Luồng chạy:
 | Linear SVM | 70,21% | 41,25% | 0,00% | 291 | 0 |
 | Multinomial Naive Bayes | 94,27% | 92,73% | 89,39% | 55 | 1 |
 
-LR và SVM mặc định dự đoán toàn bộ test là ham. Điều này phản ánh cấu hình mặc định và quá trình tối ưu trong lần chạy, không chứng minh hai thuật toán không phù hợp. [Baseline test](../results/20261113_024910_baseline_tuned/evaluation/comparison/baseline.csv).
+LR và SVM mặc định dự đoán toàn bộ test là ham. Điều này phản ánh cấu hình mặc định và quá trình tối ưu trong lần chạy, không chứng minh hai thuật toán không phù hợp. [Baseline test](../results/20261118_212649_baseline_tuned/evaluation/comparison/baseline.csv).
 
 ## 8. Huấn luyện ba thuật toán
 
@@ -120,7 +120,7 @@ Với mỗi trong sáu cặp learning rate/số vòng, huấn luyện trên subt
 | 5,0 | 1.000 | 0,450945 | 99,54% | 100,00% |
 | 5,0 | 3.000 | 0,351801 | 99,54% | 100,00% |
 
-Chọn **learning rate 5, 1.000 vòng, ngưỡng `0.4509449095570793`**. Hai cấu hình learning rate 5 cùng Macro-F1 tốt nhất nên giữ cấu hình 1.000 vòng xuất hiện trước. [Bảng validation](../results/20261113_024910_baseline_tuned/evaluation/comparison/validation.csv).
+Chọn **learning rate 5, 1.000 vòng, ngưỡng `0.4509449095570793`**. Hai cấu hình learning rate 5 cùng Macro-F1 tốt nhất nên giữ cấu hình 1.000 vòng xuất hiện trước. [Bảng validation](../results/20261118_212649_baseline_tuned/evaluation/comparison/validation.csv).
 
 ### 9.2 Linear SVM
 
@@ -136,7 +136,7 @@ Năm tổ hợp có Macro-F1 cao nhất sau chọn ngưỡng (mã tổ hợp th�
 | candidate_6_spam_x3 | 0,01 | 3.000 | 100 | 0,700963 | 97,44% |
 | candidate_0_spam_x3 | 0,01 | 1.000 | 1 | 0,994033 | 97,13% |
 
-Khi hòa Macro-F1 giữa các tổ hợp, ưu tiên trọng số đều, ít FP hơn, rồi ngưỡng gần 0 hơn. Cấu hình được chọn là **learning rate 0,01; 3.000 vòng; C=100; trọng số đều; ngưỡng `-0.6620115722742366`**. [Toàn bộ tổ hợp SVM](../results/20261113_024910_baseline_tuned/evaluation/comparison/svm_study/validation.csv) và [Lựa chọn SVM](../results/20261113_024910_baseline_tuned/evaluation/comparison/svm_study/selection.json).
+Khi hòa Macro-F1 giữa các tổ hợp, ưu tiên trọng số đều, ít FP hơn, rồi ngưỡng gần 0 hơn. Cấu hình được chọn là **learning rate 0,01; 3.000 vòng; C=100; trọng số đều; ngưỡng `-0.6620115722742366`**. [Toàn bộ tổ hợp SVM](../results/20261118_212649_baseline_tuned/evaluation/comparison/svm_study/validation.csv) và [Lựa chọn SVM](../results/20261118_212649_baseline_tuned/evaluation/comparison/svm_study/selection.json).
 
 ### 9.3 Multinomial Naive Bayes
 
@@ -150,7 +150,7 @@ Thử hệ số làm trơn trên cùng subtrain và validation; chọn `alpha=0.
 | 0,5 | 96,70% | 90,99% |
 | 2,0 | 87,21% | 67,81% |
 
-![Cấu hình các mô hình được giữ lại](../reports/figures/20261113_024910_baseline_tuned/training/training_configuration.png)
+![Cấu hình các mô hình được giữ lại](../reports/figures/20261118_212649_baseline_tuned/training/training_configuration.png)
 
 ## 10. Quy tắc dự đoán và tác động của ngưỡng
 
@@ -163,7 +163,7 @@ Thử hệ số làm trơn trên cùng subtrain và validation; chọn `alpha=0.
 | 0,500000000 | 99,13% | 98,28% | 99,08% | 4 | 2 |
 | 0,450944910 | 98,73% | 100,00% | 99,54% | 0 | 3 |
 
-[Bảng quét ngưỡng LR](../results/20261113_024910_baseline_tuned/evaluation/comparison/logistic_threshold_validation.csv) lưu toàn bộ ngưỡng đã thử, có cột đánh dấu cấu hình được chọn. `report.py` chỉ đọc bảng này để tạo báo cáo, không fit lại mô hình.
+[Bảng quét ngưỡng LR](../results/20261118_212649_baseline_tuned/evaluation/comparison/logistic_threshold_validation.csv) lưu toàn bộ ngưỡng đã thử, có cột đánh dấu cấu hình được chọn. `eda.py` chỉ đọc bảng này để tạo báo cáo, không fit lại mô hình.
 
 ### 10.2 Linear SVM
 
@@ -183,48 +183,48 @@ Sau khi chốt cấu hình/ngưỡng trên validation, dùng nguyên mô hình v
 | Linear SVM | 98,46% | 98,18% | 96,00% | 98,97% | 97,46% | 3 | 12 |
 | Multinomial Naive Bayes | 98,26% | 97,93% | 96,28% | 97,94% | 97,10% | 6 | 11 |
 
-[Kết quả tuned test](../results/20261113_024910_baseline_tuned/evaluation/comparison/metrics.csv) và [So sánh trước/sau tinh chỉnh](../results/20261113_024910_baseline_tuned/evaluation/comparison/before_after.csv).
+[Kết quả tuned test](../results/20261118_212649_baseline_tuned/evaluation/comparison/metrics.csv) và [So sánh trước/sau tinh chỉnh](../results/20261118_212649_baseline_tuned/evaluation/comparison/before_after.csv).
 
 LR dự đoán đúng 681 ham và 288 spam, sai tổng cộng 8 email. SVM cùng bỏ sót 3 spam nhưng chặn nhầm 12 ham, nhiều hơn LR 7 email. Naive Bayes bỏ sót 6 spam và chặn nhầm 11 ham. Vì vậy LR đạt Macro-F1 cao nhất trong lần chia này. Đây là kết quả thực nghiệm, chưa chứng minh LR luôn tốt hơn các thuật toán khác.
 
-![Ma trận nhầm lẫn LR trên test, ngưỡng 0,450945](../reports/figures/20261113_024910_baseline_tuned/evaluation/confusion_matrix_lr.png)
+![Ma trận nhầm lẫn LR trên test, ngưỡng 0,450945](../reports/figures/20261118_212649_baseline_tuned/evaluation/confusion_matrix_lr.png)
 
-![Ma trận nhầm lẫn SVM trên test, ngưỡng −0,662012](../reports/figures/20261113_024910_baseline_tuned/evaluation/confusion_matrix_svm.png)
+![Ma trận nhầm lẫn SVM trên test, ngưỡng −0,662012](../reports/figures/20261118_212649_baseline_tuned/evaluation/confusion_matrix_svm.png)
 
-![Ma trận nhầm lẫn Naive Bayes trên test, alpha 0,01](../reports/figures/20261113_024910_baseline_tuned/evaluation/confusion_matrix_nb.png)
+![Ma trận nhầm lẫn Naive Bayes trên test, alpha 0,01](../reports/figures/20261118_212649_baseline_tuned/evaluation/confusion_matrix_nb.png)
 
 | Mô hình | Thời gian fit mô hình được chọn (giây) | Macro-F1 baseline test | Macro-F1 tuned test |
 | --- | --- | --- | --- |
-| Logistic Regression | 0,552280 | 41,25% | 99,02% |
-| Linear SVM | 1,879152 | 41,25% | 98,18% |
-| Multinomial Naive Bayes | 0,002207 | 92,73% | 97,93% |
+| Logistic Regression | 0,613301 | 41,25% | 99,02% |
+| Linear SVM | 2,146178 | 41,25% | 98,18% |
+| Multinomial Naive Bayes | 0,002488 | 92,73% | 97,93% |
 
-Thời gian fit trên subtrain lấy từ [training.csv](../results/20261113_024910_baseline_tuned/evaluation/comparison/training.csv), chỉ đo lời gọi fit của mô hình được chọn, không gồm TF-IDF, các cấu hình bị loại, dò ngưỡng, dự đoán hay xuất báo cáo. Đây không phải tổng thời gian tuning và phụ thuộc môi trường chạy. So sánh baseline/tuned đo tác động tổng thể của cả thay đổi cấu hình lẫn ngưỡng, chưa tách riêng từng yếu tố.
+Thời gian fit trên subtrain lấy từ [training.csv](../results/20261118_212649_baseline_tuned/evaluation/comparison/training.csv), chỉ đo lời gọi fit của mô hình được chọn, không gồm TF-IDF, các cấu hình bị loại, dò ngưỡng, dự đoán hay xuất báo cáo. Đây không phải tổng thời gian tuning và phụ thuộc môi trường chạy. So sánh baseline/tuned đo tác động tổng thể của cả thay đổi cấu hình lẫn ngưỡng, chưa tách riêng từng yếu tố.
 
-![So sánh các chỉ số test](../reports/figures/20261113_024910_baseline_tuned/evaluation/metrics_comparison.png)
+![So sánh các chỉ số test](../reports/figures/20261118_212649_baseline_tuned/evaluation/metrics_comparison.png)
 
-![Đường ROC trên test](../reports/figures/20261113_024910_baseline_tuned/evaluation/roc_curve_all.png)
+![Đường ROC trên test](../reports/figures/20261118_212649_baseline_tuned/evaluation/roc_curve_all.png)
 
 ROC quét qua các ngưỡng điểm để mô tả khả năng xếp hạng; bảng test dùng ngưỡng đã chốt trên validation. Kết quả chỉ dựa trên một lần chia, một nguồn email và phạm vi cấu hình hữu hạn. Cần các lần chia hoặc dữ liệu độc lập để đánh giá độ ổn định; không điều chỉnh tham số chỉ để nâng kết quả của test đã xem.
 
 ## 12. Lưu kết quả và demo email mới
 
-Bản đầy đủ của lần thực nghiệm nằm trong `Lab01/results/20261113_024910_baseline_tuned/`: `run.json`, `events.jsonl`, `preprocessing/`, `models/`, `evaluation/`, `figures/`. Mô hình tuned và TF-IDF nằm trong `models/`; baseline nằm trong `models/baseline/`. `selection.json` ghi `fit_split=subtrain`, `refit=false`. Nhật ký thời gian của lần chạy dùng UTC+7.
+Bản đầy đủ của lần thực nghiệm nằm trong `Lab01/results/20261118_212649_baseline_tuned/`: `run.json`, `config.yaml`, `events.jsonl`, `preprocessing/`, `models/`, `evaluation/`, `figures/`. Mô hình tuned và TF-IDF nằm trong `models/`; baseline nằm trong `models/baseline/`. `selection.json` ghi `fit_split=subtrain`, `refit=false`. Nhật ký thời gian của lần chạy dùng UTC+7.
 
-Báo cáo tự động và hình tổng hợp nằm trong `Lab01/reports/`, với hình tại `reports/figures/20261113_024910_baseline_tuned/`. [Báo cáo PDF](../reports/report_20261113_024910_baseline_tuned.pdf). `Data/preprocessing/` và `Lab01/models/` là các bản được cập nhật khi pipeline chạy thành công; để tái hiện đúng thực nghiệm, dùng thư mục riêng của lần chạy.
+Báo cáo tự động và hình tổng hợp nằm trong `Lab01/reports/`, với hình tại `reports/figures/20261118_212649_baseline_tuned/`. [Báo cáo PDF](../reports/report_20261118_212649_baseline_tuned.pdf). `Data/preprocessing/` và `Lab01/models/` là các bản được cập nhật khi pipeline chạy thành công; để tái hiện đúng thực nghiệm, dùng thư mục riêng của lần chạy.
 
 Luồng dự đoán: **email mới → clean_text → TF-IDF đã lưu → xác suất/điểm → so với ngưỡng đã lưu → ham/spam**. Chạy từ thư mục gốc:
 
 ```powershell
-python -m Lab01.src.predict --run-id 20261113_024910_baseline_tuned --model logistic_regression --text "Congratulations! Claim your free cash prize now"
-python -m Lab01.src.predict --run-id 20261113_024910_baseline_tuned --model svm --text "Congratulations! Claim your free cash prize now"
-python -m Lab01.src.predict --run-id 20261113_024910_baseline_tuned --model naive_bayes --text "Congratulations! Claim your free cash prize now"
+python -m Lab01.src.predict --run-id 20261118_212649_baseline_tuned --model logistic_regression --text "Congratulations! Claim your free cash prize now"
+python -m Lab01.src.predict --run-id 20261118_212649_baseline_tuned --model svm --text "Congratulations! Claim your free cash prize now"
+python -m Lab01.src.predict --run-id 20261118_212649_baseline_tuned --model naive_bayes --text "Congratulations! Claim your free cash prize now"
 ```
 
 Lệnh dùng mô hình của đúng lần chạy, không huấn luyện lại. Không truyền `--run-id` thì dùng `Lab01/models/`. Lịch sử dự đoán ghi trong `reports/inference_history.csv` kèm `Run_ID`. Demo vài email chỉ minh họa hành vi, không thay thế đánh giá định lượng trên tập test.
 
 ```powershell
-python -m Lab01.src.report --run-id 20261113_024910_baseline_tuned
+python -m Lab01.src.eda --run-id 20261118_212649_baseline_tuned
 ```
 
 Lệnh trên tạo lại báo cáo từ dữ liệu và kết quả validation đã lưu. [Code pipeline](../src/pipeline.py) · [Code tuning](../src/tuning.py) · [Code dự đoán](../src/predict.py).

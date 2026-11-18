@@ -1,0 +1,6 @@
+{"stage": "run", "status": "started", "time": "2026-11-18T21:27:27.362190+07:00"}
+{"stage": "eda_and_preprocessing", "status": "started", "time": "2026-11-18T21:27:27.370341+07:00"}
+{"stage": "k_selection", "status": "started", "time": "2026-11-18T21:27:28.376663+07:00"}
+{"stage": "stability_and_hierarchical_comparison", "status": "started", "time": "2026-11-18T21:27:29.224119+07:00"}
+{"stage": "visualization_and_export", "status": "started", "time": "2026-11-18T21:27:32.437874+07:00"}
+{"stage": "run", "status": "success", "time": "2026-11-18T21:27:34.434099+07:00"}

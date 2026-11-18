@@ -1,4 +1,0 @@
-model,variant,fit_seconds,fit_split,learning_rate,n_iterations,C,alpha,threshold,class_weight
-logistic_regression,baseline,0.5763050000023213,subtrain,0.1,1000.0,,,0.5,
-svm,baseline,0.5597073000026285,subtrain,0.01,1000.0,1.0,,0.0,
-naive_bayes,baseline,0.004317999999329913,subtrain,,,,1.0,,

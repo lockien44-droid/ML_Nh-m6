@@ -2,22 +2,27 @@
 
 from shutil import copytree
 import json
+import argparse
+from pathlib import Path
 
 import joblib
 import pandas as pd
 from scipy.sparse import isspmatrix_csr, save_npz
 
-from .evaluate import evaluate
+from .evaluate import evaluate, save_errors
 from .preprocessing import DATA_DIR, LAB_DIR, PREPROCESSING_DIR, main as clean_data, split_clean_data
-from .run_report import save_preprocessing_figures, training_run
+from .experiment_tracking import training_run
+from .eda import save_preprocessing_figures
 from .tuning import select_models
 
 
-def train_run(run_dir, log):
+def train_run(run_dir, log, model_name=None):
+    config_path = Path(__file__).with_name("config.yaml")
+    (run_dir / "config.yaml").write_bytes(config_path.read_bytes())
     result_dir = run_dir / "evaluation"
     model_dir = run_dir / "models"
     prep = run_dir / "preprocessing"
-    from .report import save_eda
+    from .eda import save_eda
 
     log("eda")
     source = DATA_DIR / "raw" / "spam_ham_dataset.csv"
@@ -30,7 +35,7 @@ def train_run(run_dir, log):
                    for split in ("train", "test"))
     comparison_dir = result_dir / "comparison"
     log("validation_baseline_and_selection")
-    selection = select_models(train, comparison_dir)
+    selection = select_models(train, comparison_dir, model_name)
     vectorizer = selection.vectorizer
     models, tuned_models = selection.baselines, selection.models
     X_train, X_validation = selection.X, selection.V
@@ -74,6 +79,7 @@ def train_run(run_dir, log):
             predicted = model.predict(X_test)
             output = comparison_dir / "baseline" / name if group == "baseline" else result_dir / name
             metrics = evaluate(y_test, predicted, email_ids, output)
+            save_errors(model, X_test, test, output)
             row = {"model": name, "split": "test", **metrics}
             if group == "baseline":
                 baseline.append({**row, "predicted_spam": int(predicted.sum()),
@@ -91,19 +97,24 @@ def train_run(run_dir, log):
     pd.DataFrame([{**row, "variant": variant}
                   for variant, rows in (("baseline", baseline), ("tuned", comparison))
                   for row in rows]).to_csv(comparison_dir / "before_after.csv", index=False)
-    log("publish_compatibility_outputs")
-    copytree(prep, PREPROCESSING_DIR, dirs_exist_ok=True)
-    copytree(model_dir, LAB_DIR / "models", dirs_exist_ok=True)
-    (LAB_DIR / "models" / "run_id.txt").write_text(run_dir.name + "\n", encoding="utf-8")
 
 
 def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--model", choices=["logistic_regression", "svm", "naive_bayes"])
+    args = parser.parse_args()
     dataset = DATA_DIR / "raw" / "spam_ham_dataset.csv"
     with training_run(LAB_DIR / "results", dataset) as (run_dir, log):
-        train_run(run_dir, log)
-    from .report import generate
-
-    generate(run_dir)
+        train_run(run_dir, log, args.model)
+        from .eda import generate
+        log("reporting")
+        generate(run_dir, allow_running=True)
+        log("reporting", "success")
+        if args.model is None:
+            log("publish_compatibility_outputs")
+            copytree(run_dir / "preprocessing", PREPROCESSING_DIR, dirs_exist_ok=True)
+            copytree(run_dir / "models", LAB_DIR / "models", dirs_exist_ok=True)
+            (LAB_DIR / "models/run_id.txt").write_text(run_dir.name + "\n", encoding="utf-8")
 
 
 if __name__ == "__main__":
