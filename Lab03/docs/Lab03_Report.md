@@ -6,7 +6,7 @@ Phân khúc mô tả toàn bộ 200 khách trong Mall_Customers.csv theo tuổi,
 
 ## 2. Khảo sát dữ liệu
 
-Không có giá trị thiếu hoặc ID trùng. EDA ghi histogram, boxplot, scatter các cặp đặc trưng và cờ ngoại lệ 1,5 IQR. Khách có thu nhập cao hợp lệ được giữ lại.
+Không có giá trị thiếu hoặc ID trùng. EDA ghi histogram, boxplot, scatter các cặp đặc trưng và cờ ngoại lệ 1,5 IQR. Quy tắc 1,5 × IQR đánh dấu 2 khách ở cột thu nhập, 0 ở tuổi và 0 ở điểm chi tiêu. Thu nhập có trung vị 61,5 nghìn USD/năm và cao nhất 137 nghìn USD/năm. Các giá trị thu nhập cao vẫn nằm trong phạm vi dữ liệu hợp lệ, nên giữ đủ 200 khách để phân cụm.
 
 ![Phân bố và ngoại lệ của ba đặc trưng](images/eda_overview.png)
 
@@ -47,6 +47,8 @@ K-means++ khởi tạo, mỗi vòng gán khách gần tâm rồi cập nhật t�
 | 10 | 0.3995 | 81.9635 | 6 | True |
 
 K=6 đạt 0,4274, K=5 đạt 0,4166, K=9 đạt 0,4208. Chênh lệch nhỏ nên K=6 là lựa chọn có điều kiện. Inertia giảm 94,17 khi tăng K=2 lên 3 và 89,99 khi tăng K=3 lên 4. Mức giảm còn 36,98 ở K=4 lên 5 và 34,38 ở K=5 lên 6. Từ K=6 lên 7 chỉ giảm 16,86, các bước sau giảm khoảng 10–13. Vì vậy Elbow gợi ý vùng K=4–6, chưa xác định duy nhất K=6. So với K=5, nghiệm K=6 phân biệt thêm nhóm trẻ chi tiêu vừa với nhóm thu nhập dưới trung bình chi tiêu cao. K=5 vẫn là lựa chọn gọn hơn nếu chỉ cần ít phân khúc.
+
+Bảng k_selection/k5_vs_selected.csv minh họa điều K=6 bổ sung. Trong 54 khách thuộc cụm 0 khi K=5, nghiệm K=6 đưa 29 khách vào nhóm trẻ có thu nhập và chi tiêu trung bình, 24 khách vào nhóm thu nhập dưới trung bình có chi tiêu cao và 1 khách vào nhóm thu nhập dưới trung bình có chi tiêu thấp. Như vậy, K=6 tách rõ hơn hai xu hướng chi tiêu trong nhóm trước đó bị gộp, bên cạnh mức tăng Silhouette từ 0,4166 lên 0,4274.
 
 ![Silhouette và Elbow theo K](images/silhouette_by_k.png)
 
@@ -127,7 +129,7 @@ Biểu đồ Income × Spending và Plotly 3D dùng đơn vị gốc, thu nhập
 | kmeans_full | 9 | 0.4208 | — |
 | kmeans_full | 10 | 0.3995 | — |
 
-Đối chiếu hai thuật toán trên cùng toàn bộ 200 khách đã chuẩn hóa. Nhãn kmeans_full trong bảng chỉ K-Means trên toàn bộ mẫu. File validation/comparison_customer_ids.csv ghi đủ 200 CustomerID để truy nguyên, không có bước lấy mẫu con. Dấu — là ARI chưa được ghi cho hàng K-Means, không phải lỗi tính Silhouette. Phân cấp average-linkage tự cài chọn K=5, Silhouette 0,4096. SciPy chỉ vẽ dendrogram từ lịch sử gộp đã tính. ARI hiệu chỉnh mức đồng thuận do ngẫu nhiên giữa hai cách gán cụm và không phụ thuộc việc đổi số nhãn. ARI=1 là hai phân hoạch trùng nhau. Các mức khoảng 0,73–0,78 ở bảng cho thấy đồng thuận khá nhưng chưa hoàn toàn. Riêng nghiệm phân cấp K=5 so với K-Means K=6 có ARI=0,7466, không có nghĩa 74,66% khách được phân loại đúng.
+Đối chiếu hai thuật toán trên cùng toàn bộ 200 khách đã chuẩn hóa. Nhãn kmeans_full trong bảng chỉ K-Means trên toàn bộ mẫu. Cột CustomerID trong validation/hierarchical_clusters.csv ghi đủ 200 khách để truy nguyên, không có bước lấy mẫu con. Dấu — là ARI chưa được ghi cho hàng K-Means, không phải lỗi tính Silhouette. Phân cấp average-linkage tự cài chọn K=5, Silhouette 0,4096. SciPy chỉ vẽ dendrogram từ lịch sử gộp đã tính. ARI hiệu chỉnh mức đồng thuận do ngẫu nhiên giữa hai cách gán cụm và không phụ thuộc việc đổi số nhãn. ARI=1 là hai phân hoạch trùng nhau. Các mức khoảng 0,73–0,78 ở bảng cho thấy đồng thuận khá nhưng chưa hoàn toàn. Riêng nghiệm phân cấp K=5 so với K-Means K=6 có ARI=0,7466, không có nghĩa 74,66% khách được phân loại đúng.
 
 | cluster | Female | Male | Female_share | Male_share |
 | --- | --- | --- | --- | --- |

@@ -57,8 +57,9 @@ Mở HTML 3D bằng trình duyệt để xoay, thu phóng, xem tên nhóm và t�
         ├── seed_stability.csv
         ├── pairwise_ari.csv
         ├── algorithm_comparison.csv
-        ├── hierarchical_clusters.csv
-        └── comparison_customer_ids.csv
+        └── hierarchical_clusters.csv
 
 validation/ là các phân tích kiểm chứng cụm, không phải tập validation có nhãn
-như bài học có giám sát. comparison_customer_ids.csv lưu ID của toàn bộ 200 khách dùng trong phép đối chiếu.
+như bài học có giám sát. Cột CustomerID trong validation/hierarchical_clusters.csv ghi đủ 200 khách dùng trong phép đối chiếu.
+
+Notebook Run All tạo thư mục mới có hậu tố notebook và mã riêng; không ghi kết quả vào lần chạy tham chiếu. config.yaml và run.json trong thư mục mới ghi cấu hình và hash dữ liệu.
