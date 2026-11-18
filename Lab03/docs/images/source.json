@@ -1,0 +1,8 @@
+{
+  "run_id": "2026-11-18_19-38-16",
+  "dataset": "Mall_Customers.csv",
+  "dataset_sha256": "416a4f62a8f33841a16e1db5297f0e05d3b65b05e73632cedae58e739e1e1f77",
+  "customers": 200,
+  "selected_k": 6,
+  "silhouette": 0.42742814991580175
+}

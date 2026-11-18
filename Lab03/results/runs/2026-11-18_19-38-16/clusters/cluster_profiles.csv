@@ -1,0 +1,7 @@
+cluster,customer_count,Age_mean,Annual Income (k$)_mean,Spending Score (1-100)_mean,segment,marketing_hypothesis
+0,33,41.93939393939394,88.93939393939394,16.96969696969697,Thu nhập trên TB mẫu – Chi tiêu thấp,"Khảo sát nhu cầu, thử ưu đãi cá nhân hóa và đo mức tăng chi tiêu."
+1,45,56.333333333333336,54.266666666666666,49.06666666666667,Lớn tuổi – Thu nhập và chi tiêu trung bình,Thử dịch vụ thuận tiện và chương trình duy trì khách hàng.
+2,38,26.68421052631579,57.578947368421055,47.78947368421053,Trẻ – Thu nhập và chi tiêu trung bình,Thử giới thiệu sản phẩm mới và chương trình tích điểm.
+3,39,32.69230769230769,86.53846153846153,82.12820512820512,Thu nhập trên TB mẫu – Chi tiêu cao,"Ưu tiên trải nghiệm VIP, quyền lợi thành viên và bán thêm phù hợp."
+4,21,45.523809523809526,26.285714285714285,19.38095238095238,Thu nhập dưới TB mẫu – Chi tiêu thấp,"Thử sản phẩm thiết yếu, ưu đãi tiết kiệm và giới hạn chi phí tiếp cận."
+5,24,25.25,25.833333333333332,76.91666666666667,Thu nhập dưới TB mẫu – Chi tiêu cao,"Thử ưu đãi theo ngân sách và combo giá trị, theo dõi biên lợi nhuận."

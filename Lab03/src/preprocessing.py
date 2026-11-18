@@ -17,6 +17,11 @@ def prepare_data(config, output):
     numeric = frame[features].apply(pd.to_numeric, errors="raise")
     if not np.isfinite(numeric.to_numpy(dtype=float)).all():
         raise ValueError("Features contain missing or infinite values. Review the EDA.")
+    age, income, spending = features
+    valid = (numeric[age].between(1,100)
+             & numeric[income].gt(0) & numeric[spending].between(1,100))
+    if not valid.all():
+        raise ValueError("Review invalid age, income or spending score before clustering.")
     means = numeric.mean()
     scales = numeric.std(ddof=0).replace(0, 1)
     scaled = (numeric - means) / scales

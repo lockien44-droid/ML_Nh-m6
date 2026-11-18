@@ -22,4 +22,10 @@ def analyze(frame, features, output):
         axes[1, column].boxplot(values)
         axes[1, column].set(title=f"IQR flags: {int(flagged[feature].sum())}")
     fig.savefig(output / "eda_overview.png", dpi=160)
+    pairs = [(0,1),(0,2),(1,2)]
+    fig = Figure(figsize=(13,4),layout="tight")
+    for ax, (left,right) in zip(fig.subplots(1,3),pairs):
+        ax.scatter(numeric[features[left]],numeric[features[right]],s=14,alpha=.7)
+        ax.set(xlabel=features[left],ylabel=features[right])
+    fig.savefig(output / "eda_feature_pairs.png",dpi=160)
     return flags

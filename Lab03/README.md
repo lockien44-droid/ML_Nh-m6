@@ -1,47 +1,64 @@
-# Lab03 — Customer Clustering
+# Lab03 — Mall Customer Clustering
 
-## Tổng quan
-
-K-Means và Silhouette tự cài bằng NumPy. Ba đặc trưng gồm tuổi, thu nhập năm và điểm chi tiêu. Bộ CSV hiện có 200 khách hàng. Nguồn công bố/giấy phép cần bổ sung vì file chưa kèm thông tin đó.
-
-## Cấu trúc
-
-```text
-Lab03/
-├── algorithms/kmeans.py             # Gán cụm, cập nhật tâm, hội tụ, nhiều khởi tạo
-├── Data/raw/Mall_Customers.csv      # CSV gốc
-├── Data/preprocessing/              # CSV chuẩn hóa và tham số scaling mới nhất
-├── src/
-│   ├── config.yaml                 # Đặc trưng, K và tham số
-│   ├── preprocessing.py            # Kiểm tra dữ liệu và chuẩn hóa
-│   ├── eda.py                      # Thiếu, ngoại lệ, phân bố
-│   ├── train.py                    # Huấn luyện một K
-│   ├── tuning.py                   # So sánh K theo Silhouette
-│   ├── evaluate.py                 # Silhouette và profile
-│   ├── visualization.py            # Biểu đồ K và Plotly 3D
-│   └── pipeline.py                 # Thực nghiệm và lưu kết quả
-├── notebooks/01_customer_clustering.ipynb
-├── results/runs/<run_id>/           # Kết quả, cấu hình, mô hình và hình từng lần chạy
-├── docs/
-│   ├── Lab03_Report.md             # Phương pháp và kết quả
-│   ├── ReadmeForParameters.md      # Giải thích tham số
-│   └── assignments_Lab03/          # Bản đề bài theo cấu trúc yêu cầu
-└── README.md
-```
+Dùng Mall_Customers.csv gồm 200 khách và năm cột. K-Means học từ Age,
+Annual Income (k$) và Spending Score (1-100). Gender dùng mô tả sau phân cụm.
 
 ## Cài đặt và chạy
 
-Chạy từ thư mục gốc repository.
+    python -m pip install -r Lab03/requirements.txt
+    python -m Lab03.src.pipeline
 
-```powershell
-python -m pip install -r requirements.txt
-python -m Lab03.src.pipeline
-```
+Thuật toán K-Means, average-linkage, chuẩn hóa, Silhouette và ARI tự cài bằng NumPy.
+Plotly vẽ 3D, SciPy vẽ dendrogram.
 
-Lệnh in thư mục kết quả. Mở figures/customer_clusters_3d.html trong thư mục đó bằng trình duyệt, dùng chuột để xoay, cuộn để thu phóng và hover xem khách hàng. HTML nhúng thư viện nên có thể mở ngoại tuyến.
+## Cấu trúc
 
-## Kết quả
+- algorithms/ chứa các class thuật toán.
+- Data/raw/Mall_Customers.csv là dữ liệu gốc, SOURCE.md và DATA_DICTIONARY.md mô tả nguồn.
+- Data/preprocessing/ chứa 200 dòng chuẩn hóa và tham số scaling mới nhất.
+- src/ chứa config, EDA, preprocessing, train, tuning, evaluate, analysis,
+  visualization và pipeline.
+- notebooks/01_customer_clustering.ipynb trình bày phân tích và kết quả.
+- results/runs/<run_id>/ chứa kết quả theo phiên bản.
+- docs/ chứa báo cáo, tham số và đề bài.
 
-Lần chạy 20261118T074359Z-36241066 chọn K=6, Silhouette 0,4274. [Báo cáo và phân khúc](docs/Lab03_Report.md) có bảng profile và hình. Notebook gọi lại các module trong src và class KMeans.
+## Kết quả tham chiếu
 
-Bản đề gốc hiện có được sao chép thành docs/assignments_Lab03/Lab03_Assignment(2).pdf. Phần bổ sung phân đoạn ảnh trong PDF nằm ngoài cấu trúc phân cụm khách hàng được yêu cầu.
+K=6, Silhouette 0,4274, inertia 133,8683. 9/10 seed chọn K=6, seed 8 chọn K=8.
+Phân cấp được so sánh trên cùng 200 khách.
+
+[Notebook](notebooks/01_customer_clustering.ipynb)
+[Báo cáo](docs/Lab03_Report.md)
+[Biểu đồ 3D](results/runs/2026-11-18_19-38-16/figures/customer_clusters_3d.html)
+[Nguồn và giấy phép](Data/raw/SOURCE.md)
+
+Git giữ một lần chạy tham chiếu 2026-11-18_19-38-16. Các lượt chạy mới được lưu cục bộ và gitignore.
+Mở HTML 3D bằng trình duyệt để xoay, thu phóng, xem tên nhóm và tâm cụm.
+
+
+## Thư mục kết quả mỗi lần chạy
+
+    results/runs/<run_id>/
+    ├── run.json
+    ├── config.yaml
+    ├── preprocessing/
+    ├── figures/
+    ├── model/
+    │   └── kmeans.joblib
+    ├── clusters/
+    │   ├── customer_clusters.csv
+    │   ├── cluster_profiles.csv
+    │   └── gender_by_cluster.csv
+    ├── k_selection/
+    │   ├── k_comparison.csv
+    │   ├── k5_vs_selected.csv
+    │   └── k9_vs_selected.csv
+    └── validation/
+        ├── seed_stability.csv
+        ├── pairwise_ari.csv
+        ├── algorithm_comparison.csv
+        ├── hierarchical_clusters.csv
+        └── comparison_customer_ids.csv
+
+validation/ là các phân tích kiểm chứng cụm, không phải tập validation có nhãn
+như bài học có giám sát. comparison_customer_ids.csv lưu ID của toàn bộ 200 khách dùng trong phép đối chiếu.

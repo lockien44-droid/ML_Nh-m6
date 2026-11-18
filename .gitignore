@@ -18,3 +18,11 @@ Lab01/Data/preprocessing/09_tfidf/tfidf_vectorizer.joblib
 
 # Generated Lab01 experiments (Vietnam time run IDs).
 Lab01/results_runs/
+
+
+# Lab03 keeps one updated reference run; other runs are reproducible local outputs.
+Lab03/results/runs/*
+
+
+
+!Lab03/results/runs/2026-11-18_19-38-16/

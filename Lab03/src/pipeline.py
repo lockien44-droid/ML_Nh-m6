@@ -1,26 +1,40 @@
 """Run reproducible customer clustering and retain per-run artifacts."""
 import json
 import shutil
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from hashlib import sha256
-from uuid import uuid4
 import joblib
 import pandas as pd
 import yaml
 from .preprocessing import LAB_DIR, prepare_data
 from .eda import analyze
 from .tuning import tune
+from .train import train_model
 from .evaluate import cluster_profiles, silhouette_samples
-from .visualization import plot_comparison, plot_clusters
+from .visualization import (plot_comparison, plot_clusters, plot_income_spending,
+                            plot_silhouette, plot_dendrogram)
+from .analysis import (describe_segments, gender_distribution, stability_analysis,
+                       compare_hierarchical)
 
 
 def run_pipeline():
     config = yaml.safe_load((LAB_DIR / "src/config.yaml").read_text(encoding="utf-8"))
-    run_id = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ") + "-" + uuid4().hex[:8]
-    run = LAB_DIR / "results/runs" / run_id
+    now = datetime.now(timezone(timedelta(hours=7)))
+    base_id = now.strftime("%Y-%m-%d_%H-%M-%S")
+    sequence = 1
+    while True:
+        run_id = base_id if sequence == 1 else f"{base_id}_{sequence:02d}"
+        run = LAB_DIR / "results/runs" / run_id
+        try:
+            run.mkdir(parents=True)
+            break
+        except FileExistsError:
+            sequence += 1
     figures = run / "figures"
-    figures.mkdir(parents=True)
-    manifest = {"run_id": run_id, "status": "running", "timestamp_timezone": "UTC"}
+    figures.mkdir()
+    for name in ["model", "clusters", "k_selection", "validation"]:
+        (run / name).mkdir()
+    manifest = {"run_id": run_id, "status": "running", "timestamp_timezone": "Asia/Ho_Chi_Minh", "started_at": now.isoformat()}
     try:
         (run / "config.yaml").write_text(yaml.safe_dump(config), encoding="utf-8")
         source = LAB_DIR / config["data"]["path"]
@@ -30,21 +44,48 @@ def run_pipeline():
         analyze(raw, features, figures)
         frame, X, scaling = prepare_data(config, run / "preprocessing")
         model, comparison = tune(X, config["kmeans"])
-        comparison.to_csv(run / "k_comparison.csv", index=False)
+        comparison.to_csv(run / "k_selection/k_comparison.csv", index=False)
         customers = frame.assign(cluster=model.labels_, silhouette=silhouette_samples(X, model.labels_))
-        customers.to_csv(run / "customer_clusters.csv", index=False)
         profiles = cluster_profiles(frame, model.labels_, features)
-        profiles.to_csv(run / "cluster_profiles.csv", index=False)
+        profiles = describe_segments(profiles, features)
+        customers = customers.merge(profiles[["cluster","segment"]],on="cluster",validate="many_to_one")
+        customers.to_csv(run / "clusters/customer_clusters.csv", index=False)
+        profiles.to_csv(run / "clusters/cluster_profiles.csv", index=False)
+        for alternate_k in (5,9):
+            if alternate_k < len(X):
+                alternative = train_model(X,alternate_k,config["kmeans"])
+                pd.crosstab(alternative.labels_,model.labels_,rownames=[f"K{alternate_k}"],
+                            colnames=[f"K{model.n_clusters}"]).to_csv(run / "k_selection" / f"k{alternate_k}_vs_selected.csv")
+        gender_distribution(customers).to_csv(run / "clusters/gender_by_cluster.csv",index=False)
+        plot_income_spending(customers,features,figures / "income_spending.png")
+        plot_silhouette(customers,figures / "silhouette_clusters.png")
+        print("Checking multiple seeds...",flush=True)
+        stability, pairs = stability_analysis(X,config["kmeans"],config["analysis"]["seeds"],
+                                             model.labels_,model.n_clusters)
+        stability.to_csv(run / "validation/seed_stability.csv",index=False)
+        pairs.to_csv(run / "validation/pairwise_ari.csv",index=False)
+        import numpy as np
+        indices = np.arange(len(X))
+        hierarchy_scores, hierarchy = compare_hierarchical(X[indices],config["kmeans"]["k_values"],model.labels_[indices])
+        from .train import train_model as fit_comparison
+        subset_rows=[]
+        for k in config["kmeans"]["k_values"]:
+            subset_model=fit_comparison(X[indices],k,config["kmeans"])
+            subset_rows.append(dict(algorithm="kmeans_full",k=k,silhouette=float(silhouette_samples(X[indices],subset_model.labels_).mean())))
+        hierarchy_scores = pd.concat([hierarchy_scores,pd.DataFrame(subset_rows)],ignore_index=True)
+        hierarchy_scores.to_csv(run / "validation/algorithm_comparison.csv",index=False)
+        frame.iloc[indices].assign(cluster=hierarchy.labels_).to_csv(run / "validation/hierarchical_clusters.csv",index=False)
+        plot_dendrogram(hierarchy, figures / "dendrogram.png")
         plot_comparison(comparison, figures / "silhouette_by_k.png")
         plot_clusters(customers, features, config["data"]["id_column"],
                       figures / "customer_clusters_3d.html")
-        joblib.dump(model, run / "kmeans.joblib")
+        joblib.dump(model, run / "model/kmeans.joblib")
         # A stable convenience copy, alongside the per-run original.
         destination = LAB_DIR / "Data/preprocessing"
         destination.mkdir(parents=True, exist_ok=True)
         for path in (run / "preprocessing").glob("*.csv"):
             shutil.copy2(path, destination / path.name)
-        manifest.update(status="success", selected_k=model.n_clusters,
+        manifest.update(status="success", raw_rows=len(raw), eligible_rows=len(frame), excluded_rows=len(raw)-len(frame), selected_k=model.n_clusters,
                         silhouette=float(customers.silhouette.mean()))
         print(comparison.to_string(index=False))
         print("Selected K:", model.n_clusters)
