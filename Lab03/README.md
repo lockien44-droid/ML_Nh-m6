@@ -8,8 +8,8 @@ Annual Income (k$) và Spending Score (1-100). Gender dùng mô tả sau phân c
     python -m pip install -r Lab03/requirements.txt
     python -m Lab03.src.pipeline
 
-Thuật toán K-Means, average-linkage, chuẩn hóa, Silhouette và ARI tự cài bằng NumPy.
-Plotly vẽ 3D, SciPy vẽ dendrogram.
+Thuật toán K-Means, chuẩn hóa, Silhouette và ARI tự cài bằng NumPy.
+Matplotlib vẽ biểu đồ tĩnh, Plotly vẽ biểu đồ 3D tương tác.
 
 ## Cấu trúc
 
@@ -25,14 +25,13 @@ Plotly vẽ 3D, SciPy vẽ dendrogram.
 ## Kết quả tham chiếu
 
 K=6, Silhouette 0,4274, inertia 133,8683. 9/10 seed chọn K=6, seed 8 chọn K=8.
-Phân cấp được so sánh trên cùng 200 khách.
 
 [Notebook](notebooks/01_customer_clustering.ipynb)
 [Báo cáo](docs/Lab03_Report.md)
-[Biểu đồ 3D](results/runs/2026-11-18_21-27-27/figures/customer_clusters_3d.html)
+[Biểu đồ 3D](results/runs/2026-11-18_22-05-16/figures/customer_clusters_3d.html)
 [Nguồn và giấy phép](Data/raw/SOURCE.md)
 
-Git giữ một lần chạy tham chiếu 2026-11-18_21-27-27. Các lượt chạy mới được lưu cục bộ và gitignore.
+Git giữ một lần chạy tham chiếu 2026-11-18_22-05-16. Các lượt chạy mới được lưu cục bộ và gitignore.
 Mở HTML 3D bằng trình duyệt để xoay, thu phóng, xem tên nhóm và tâm cụm.
 
 
@@ -55,14 +54,12 @@ Mở HTML 3D bằng trình duyệt để xoay, thu phóng, xem tên nhóm và t�
     │   └── k9_vs_selected.csv
     └── validation/
         ├── seed_stability.csv
-        ├── pairwise_ari.csv
-        ├── algorithm_comparison.csv
-        └── hierarchical_clusters.csv
+        └── pairwise_ari.csv
 
 validation/ là các phân tích kiểm chứng cụm, không phải tập validation có nhãn
-như bài học có giám sát. Cột CustomerID trong validation/hierarchical_clusters.csv ghi đủ 200 khách dùng trong phép đối chiếu.
+như bài học có giám sát. Các bảng trong thư mục này đánh giá độ ổn định của K-Means khi thay đổi seed.
 
 Notebook Run All tạo thư mục mới có hậu tố notebook và mã riêng; không ghi kết quả vào lần chạy tham chiếu. config.yaml và run.json trong thư mục mới ghi cấu hình và hash dữ liệu.
 
 
-Các lần chạy được lưu cục bộ và bỏ qua trong Git. Repository giữ một lần chạy tham chiếu đầy đủ để đối chiếu báo cáo. Tham chiếu hiện tại là `2026-11-18_21-27-27`. Chạy pipeline sẽ tạo thư mục mới, không ghi đè thư mục tham chiếu.
+Các lần chạy được lưu cục bộ và bỏ qua trong Git. Repository giữ một lần chạy tham chiếu đầy đủ để đối chiếu báo cáo. Tham chiếu hiện tại là `2026-11-18_22-05-16`. Chạy pipeline sẽ tạo thư mục mới, không ghi đè thư mục tham chiếu.

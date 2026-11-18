@@ -8,9 +8,9 @@
 | k_values | Các K thử từ 2 đến 10 |
 | max_iter | Tối đa số vòng cập nhật tâm mỗi khởi tạo |
 | tol | Ngưỡng độ dịch chuyển toàn bộ tâm trong không gian chuẩn hóa |
-| random_state | Seed cho khởi tạo và mẫu con |
+| random_state | Seed cho khởi tạo tâm K-Means |
 | n_init | Số lần khởi tạo mỗi K, giữ nghiệm inertia nhỏ nhất |
 | analysis.seeds | Các seed thử lại việc chọn K và so sánh ARI |
 
 Z-score dùng ddof=0.
-Cột hằng có hệ số chia bằng 1. Phân cấp và K-Means được so sánh trên cùng toàn bộ 200 khách.
+Cột hằng có hệ số chia bằng 1. K-Means mô tả toàn bộ 200 khách đã chuẩn hóa.

@@ -56,12 +56,3 @@ def plot_silhouette(customers, destination):
     ax.set(xlabel="Silhouette",ylabel="Sorted customers by cluster",xlim=(-.4,1))
     ax.legend()
     fig.savefig(destination,dpi=160)
-
-
-def plot_dendrogram(model, destination):
-    from scipy.cluster.hierarchy import dendrogram
-    fig=Figure(figsize=(11,5),layout="tight")
-    ax=fig.subplots()
-    dendrogram(model.linkage_,ax=ax,truncate_mode="lastp",p=20)
-    ax.set(title="Average-linkage hierarchy (last 20 merges)",ylabel="Euclidean distance")
-    fig.savefig(destination,dpi=160)

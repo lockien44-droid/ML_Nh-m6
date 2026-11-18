@@ -3,7 +3,6 @@ import numpy as np
 import pandas as pd
 from .tuning import tune
 from ..algorithms.kmeans import KMeans
-from ..algorithms.agglomerative import AgglomerativeClustering
 from .evaluate import silhouette_samples
 
 
@@ -78,17 +77,3 @@ def stability_analysis(X, settings, seeds, reference, selected_k):
             pair_rows.append(dict(seed_a=seeds[i],seed_b=seeds[j],
                                  fixed_k=selected_k,ari=adjusted_rand_score(labels[i],labels[j])))
     return pd.DataFrame(rows), pd.DataFrame(pair_rows)
-
-
-def compare_hierarchical(X, k_values, reference):
-    rows, models = [], {}
-    # One hierarchy can be cut at different K. Small n keeps independent fits cheap.
-    for k in sorted(set(k_values)):
-        model = AgglomerativeClustering(k).fit(X)
-        rows.append(dict(algorithm="average_linkage",k=k,
-                         silhouette=float(silhouette_samples(X,model.labels_).mean()),
-                         ari_vs_kmeans=adjusted_rand_score(reference,model.labels_)))
-        models[k] = model
-    scores = pd.DataFrame(rows)
-    best = scores.sort_values(["silhouette","k"],ascending=[False,True]).iloc[0]
-    return scores, models[int(best.k)]

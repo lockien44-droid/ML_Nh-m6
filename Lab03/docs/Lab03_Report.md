@@ -79,7 +79,7 @@ Biểu đồ Income × Spending và Plotly 3D dùng đơn vị gốc, thu nhập
 
 *Hình 7. Thêm trục tuổi giúp đọc các nhóm chồng lấn trên biểu đồ hai chiều.*
 
-[Biểu đồ 3D có thể xoay và thu phóng](../results/runs/2026-11-18_21-27-27/figures/customer_clusters_3d.html)
+[Biểu đồ 3D có thể xoay và thu phóng](../results/runs/2026-11-18_22-05-16/figures/customer_clusters_3d.html)
 
 ![Silhouette của từng khách theo cụm](images/silhouette_clusters.png)
 
@@ -106,30 +106,7 @@ Biểu đồ Income × Spending và Plotly 3D dùng đơn vị gốc, thu nhập
 
 *Hình 9. Bên trái là K được chọn khi đổi seed, bên phải là ARI khi giữ K=6 và so với seed 42.*
 
-## 9. Phân cấp và Gender
-
-| algorithm | k | silhouette | ari_vs_kmeans |
-| --- | --- | --- | --- |
-| average_linkage | 2 | 0.3249 | 0.2878 |
-| average_linkage | 3 | 0.3400 | 0.4425 |
-| average_linkage | 4 | 0.3839 | 0.6279 |
-| average_linkage | 5 | 0.4096 | 0.7466 |
-| average_linkage | 6 | 0.3896 | 0.7342 |
-| average_linkage | 7 | 0.3800 | 0.7181 |
-| average_linkage | 8 | 0.3756 | 0.6982 |
-| average_linkage | 9 | 0.4069 | 0.7850 |
-| average_linkage | 10 | 0.3954 | 0.7496 |
-| kmeans_full | 2 | 0.3355 | — |
-| kmeans_full | 3 | 0.3578 | — |
-| kmeans_full | 4 | 0.4040 | — |
-| kmeans_full | 5 | 0.4166 | — |
-| kmeans_full | 6 | 0.4274 | — |
-| kmeans_full | 7 | 0.4172 | — |
-| kmeans_full | 8 | 0.4085 | — |
-| kmeans_full | 9 | 0.4208 | — |
-| kmeans_full | 10 | 0.3995 | — |
-
-Đối chiếu hai thuật toán trên cùng toàn bộ 200 khách đã chuẩn hóa. Nhãn kmeans_full trong bảng chỉ K-Means trên toàn bộ mẫu. Cột CustomerID trong validation/hierarchical_clusters.csv ghi đủ 200 khách để truy nguyên, không có bước lấy mẫu con. Dấu — là ARI chưa được ghi cho hàng K-Means, không phải lỗi tính Silhouette. Phân cấp average-linkage tự cài chọn K=5, Silhouette 0,4096. SciPy chỉ vẽ dendrogram từ lịch sử gộp đã tính. ARI hiệu chỉnh mức đồng thuận do ngẫu nhiên giữa hai cách gán cụm và không phụ thuộc việc đổi số nhãn. ARI=1 là hai phân hoạch trùng nhau. Các mức khoảng 0,73–0,78 ở bảng cho thấy đồng thuận khá nhưng chưa hoàn toàn. Riêng nghiệm phân cấp K=5 so với K-Means K=6 có ARI=0,7466, không có nghĩa 74,66% khách được phân loại đúng.
+## 9. Gender theo cụm
 
 | cluster | Female | Male | Female_share | Male_share |
 | --- | --- | --- | --- | --- |
@@ -142,13 +119,9 @@ Biểu đồ Income × Spending và Plotly 3D dùng đơn vị gốc, thu nhập
 
 Gender chưa tham gia khoảng cách vì mục tiêu tuổi, thu nhập và chi tiêu. Tỷ lệ theo cụm là mô tả, chưa là tác động nhân quả. Cụm 4 và 5 chỉ có 21 và 24 khách, nên thêm hoặc bớt một vài khách có thể làm tỷ lệ Female/Male thay đổi đáng kể. Cần thận trọng khi diễn giải tỷ lệ ở các cụm nhỏ.
 
-![Dendrogram average-linkage](images/dendrogram.png)
-
-*Hình 10. Dendrogram rút gọn phần 20 nhánh cuối của cây phân cấp. Trục đứng là khoảng cách khi gộp cụm.*
-
 ![Phân bố Gender theo cụm](images/gender_by_cluster.png)
 
-*Hình 11. Số khách Female/Male trong từng cụm. Đọc số lượng cùng kích thước cụm, đặc biệt với cụm 4 và 5.*
+*Hình 10. Số khách Female/Male trong từng cụm. Đọc số lượng cùng kích thước cụm, đặc biệt với cụm 4 và 5.*
 
 ## 10. Kết luận và giới hạn
 
@@ -158,6 +131,6 @@ Kết quả nhiều seed đánh giá sự ổn định khởi tạo trên cùng 
 
 ## 11. Tái lập và phần chưa thực hiện
 
-Lần chạy tham chiếu 2026-11-18_21-27-27. YAML và hash nguồn giúp xác định cấu hình và dữ liệu. Chạy python -m Lab03.src.pipeline để tạo một lần chạy mới. Notebook trình bày từng bước và bảng kết quả.
+Lần chạy tham chiếu 2026-11-18_22-05-16. YAML và hash nguồn giúp xác định cấu hình và dữ liệu. Chạy python -m Lab03.src.pipeline để tạo một lần chạy mới. Notebook trình bày từng bước và bảng kết quả.
 
 Bài bổ sung phân đoạn ảnh chưa thực hiện trong báo cáo này.

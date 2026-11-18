@@ -13,9 +13,8 @@ from .tuning import tune
 from .train import train_model
 from .evaluate import cluster_profiles, silhouette_samples
 from .visualization import (plot_comparison, plot_clusters, plot_income_spending,
-                            plot_silhouette, plot_dendrogram)
-from .analysis import (describe_segments, gender_distribution, stability_analysis,
-                       compare_hierarchical)
+                            plot_silhouette)
+from .analysis import describe_segments, gender_distribution, stability_analysis
 
 
 def run_pipeline():
@@ -70,25 +69,13 @@ def run_pipeline():
         gender_distribution(customers).to_csv(run / "clusters/gender_by_cluster.csv",index=False)
         plot_income_spending(customers,features,figures / "income_spending.png")
         plot_silhouette(customers,figures / "silhouette_clusters.png")
-        log("stability_and_hierarchical_comparison")
+        log("seed_stability")
         print("Checking multiple seeds...",flush=True)
         stability, pairs = stability_analysis(X,config["kmeans"],config["analysis"]["seeds"],
                                              model.labels_,model.n_clusters)
         stability.to_csv(run / "validation/seed_stability.csv",index=False)
         pairs.to_csv(run / "validation/pairwise_ari.csv",index=False)
-        import numpy as np
-        indices = np.arange(len(X))
-        hierarchy_scores, hierarchy = compare_hierarchical(X[indices],config["kmeans"]["k_values"],model.labels_[indices])
-        from .train import train_model as fit_comparison
-        subset_rows=[]
-        for k in config["kmeans"]["k_values"]:
-            subset_model=fit_comparison(X[indices],k,config["kmeans"])
-            subset_rows.append(dict(algorithm="kmeans_full",k=k,silhouette=float(silhouette_samples(X[indices],subset_model.labels_).mean())))
-        hierarchy_scores = pd.concat([hierarchy_scores,pd.DataFrame(subset_rows)],ignore_index=True)
-        hierarchy_scores.to_csv(run / "validation/algorithm_comparison.csv",index=False)
-        frame.iloc[indices].assign(cluster=hierarchy.labels_).to_csv(run / "validation/hierarchical_clusters.csv",index=False)
         log("visualization_and_export")
-        plot_dendrogram(hierarchy, figures / "dendrogram.png")
         plot_comparison(comparison, figures / "silhouette_by_k.png")
         plot_clusters(customers, features, config["data"]["id_column"],
                       figures / "customer_clusters_3d.html")

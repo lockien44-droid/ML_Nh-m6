@@ -12,7 +12,7 @@ Lab01/results_runs/
 Lab02/results/runs/*
 !Lab02/results/runs/2026-11-18_21-14-12/
 Lab03/results/runs/*
-!Lab03/results/runs/2026-11-18_21-27-27/
+!Lab03/results/runs/2026-11-18_22-05-16/
 
 # Published convenience models can be recreated from reference runs.
 Lab01/models/

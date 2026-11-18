@@ -18,7 +18,7 @@ tiền xử lý, thực nghiệm, đánh giá và tài liệu. Thuật toán t�
 | --- | --- | --- |
 | Lab01 | Phân loại email spam bằng Logistic Regression, Linear SVM, Naive Bayes | [Hướng dẫn và notebook](Lab01/README.md) |
 | Lab02 | Dự đoán số lượng bán theo sản phẩm/ngày bằng bốn thuật toán hồi quy | [Hướng dẫn, kết quả và giới hạn](Lab02/README.md) |
-| Lab03 | Phân khúc khách hàng bằng K-Means, đối chiếu average-linkage | [Hướng dẫn, 3D và báo cáo](Lab03/README.md) |
+| Lab03 | Phân khúc khách hàng bằng K-Means | [Hướng dẫn, 3D và báo cáo](Lab03/README.md) |
 | Lab04 | Tài liệu bài thực hành 4 | Hiện mới có đề bài trong Lab04/docs |
 
 ## Cài đặt và chạy
