@@ -1,1 +1,1 @@
-{"winner": "random_forest", "run_id": "2026-11-18_21-14-12"}
+{"winner": "gradient_boosting", "run_id": "2026-11-24_17-02-43", "frequency": "weekly", "target": "Revenue per sku/week", "unit": "source price_unit currency"}

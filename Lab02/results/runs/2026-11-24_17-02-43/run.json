@@ -1,0 +1,16 @@
+{
+  "run_id": "2026-11-24_17-02-43",
+  "status": "success",
+  "started_at": "2026-11-24T17:02:43.886678+07:00",
+  "timezone": "Asia/Ho_Chi_Minh",
+  "dataset_sha256": "ec91eb23b62ec9836d0923f27cadb7d1d57c4185e111144a1e54feb569c4e61d",
+  "finished_at": "2026-11-24T17:21:23.779829+07:00",
+  "duration_seconds": 208.70883400000093,
+  "completed_stages": [
+    "preprocessing",
+    "tuning",
+    "training",
+    "evaluation"
+  ],
+  "current_stage": "evaluation"
+}

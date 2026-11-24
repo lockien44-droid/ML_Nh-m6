@@ -1,0 +1,54 @@
+{
+  "fit_id": "fit_0010",
+  "split": "validation",
+  "metric": "macro_f1",
+  "mode": "automatic",
+  "score_type": "decision_score",
+  "default": {
+    "threshold": 0.0,
+    "macro_f1": 0.4124718256949662,
+    "spam_precision": 0.0,
+    "spam_recall": 0.0,
+    "spam_f1": 0.0,
+    "fn": 233,
+    "fp": 0,
+    "tn": 549,
+    "tp": 0,
+    "accuracy": 0.7020460358056266,
+    "predicted_spam": 0,
+    "confusion_matrix": [
+      [
+        549,
+        0
+      ],
+      [
+        233,
+        0
+      ]
+    ]
+  },
+  "selected": {
+    "threshold": -0.9970261442347068,
+    "macro_f1": 0.9832906956641667,
+    "spam_precision": 0.9663865546218487,
+    "spam_recall": 0.9871244635193133,
+    "spam_f1": 0.9766454352441614,
+    "fn": 3,
+    "fp": 8,
+    "tn": 541,
+    "tp": 230,
+    "accuracy": 0.9859335038363172,
+    "predicted_spam": 238,
+    "confusion_matrix": [
+      [
+        541,
+        8
+      ],
+      [
+        3,
+        230
+      ]
+    ]
+  },
+  "tie_break": "fewer FP, then closer to default threshold"
+}

@@ -20,6 +20,9 @@ def evaluate(y_true, y_pred, email_ids, output_dir):
         "macro_f1": report["macro avg"]["f1-score"],
         "ham_as_spam": int(matrix[0, 1]),
         "spam_as_ham": int(matrix[1, 0]),
+        "spam_precision": report["spam"]["precision"],
+        "spam_recall": report["spam"]["recall"],
+        "spam_f1": report["spam"]["f1-score"],
     }
     (output_dir / "metrics.json").write_text(json.dumps(metrics, indent=2) + "\n", encoding="utf-8")
     pd.DataFrame.from_dict({name: report[name] for name in names}, orient="index").to_csv(

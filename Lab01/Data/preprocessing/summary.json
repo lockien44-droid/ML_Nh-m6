@@ -3,5 +3,9 @@
   "invalid_rows_removed": 0,
   "empty_rows_removed": 0,
   "duplicates_removed": 287,
-  "clean_rows": 4884
+  "clean_rows": 4884,
+  "label_counts": {
+    "0": 3427,
+    "1": 1457
+  }
 }

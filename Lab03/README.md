@@ -3,6 +3,15 @@
 Dùng Mall_Customers.csv gồm 200 khách và năm cột. K-Means học từ Age,
 Annual Income (k$) và Spending Score (1-100). Gender dùng mô tả sau phân cụm.
 
+## Thành viên nhóm
+
+- Vũ Thị Thanh Thùy
+- Nguyễn Văn Minh
+- Lê Hồng Sơn
+- Phan Đình Hưng
+- Phạm Minh Tiến
+- Võ Thị Anh Tú
+
 ## Cài đặt và chạy
 
     python -m pip install -r Lab03/requirements.txt

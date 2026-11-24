@@ -34,13 +34,28 @@ def main():
         if manifest.get('status') != 'success':
             parser.error('Prediction requires a successful run.')
         directory = run / 'models'
-    for filename in (f'{args.model}.joblib', 'tfidf_vectorizer.joblib'):
-        if not (directory / filename).is_file():
-            parser.error(f'Missing saved artifact: {directory / filename}')
     marker = directory / 'run_id.txt'
     run_id = args.run_id or (marker.read_text(encoding='utf-8').strip() if marker.exists() else '')
-    model = joblib.load(directory / f'{args.model}.joblib')
-    vectorizer = joblib.load(directory / 'tfidf_vectorizer.joblib')
+    info_path = directory / 'model_info.json'
+    if info_path.exists():
+        info = json.loads(info_path.read_text(encoding='utf-8'))
+        entry = next((row for row in info['models'] if row['model']==args.model and row['variant']=='tuned'), None)
+        if entry is None:
+            parser.error(f'Model {args.model} was not trained in this run.')
+        root = directory.parent
+        model_path = root / entry['model_path']
+        vectorizer_path = root / entry['vectorizer_path']
+        if any(not path.resolve().is_relative_to(directory.resolve()) for path in (model_path, vectorizer_path)):
+            parser.error('Artifact paths must stay inside the model directory.')
+    else:
+        # Historical runs used a flat models directory.
+        model_path = directory / f'{args.model}.joblib'
+        vectorizer_path = directory / 'tfidf_vectorizer.joblib'
+    for path in (model_path,vectorizer_path):
+        if not path.is_file():
+            parser.error(f'Missing saved artifact: {path}')
+    model = joblib.load(model_path)
+    vectorizer = joblib.load(vectorizer_path)
     X = vectorizer.transform([cleaned])
     label = int(model.predict(X)[0])
     result = {'Run_ID': run_id, 'model': args.model, 'label': 'spam' if label else 'ham'}

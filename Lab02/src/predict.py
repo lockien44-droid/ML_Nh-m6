@@ -1,4 +1,4 @@
-"""Predict next-day units from explicit past-only predictors."""
+"""Predict using one saved Lab02 run without tuning or fitting."""
 import argparse
 import csv
 from datetime import datetime, timezone
@@ -9,17 +9,21 @@ import pandas as pd
 from .preprocessing import LAB, FEATURES
 
 
-def sample_from_history(path, product, date):
-    history = pd.read_csv(path, dtype={"StockCode": str})
+def sample_from_history(path, product, date, frequency="daily"):
+    history = pd.read_csv(path, dtype={"StockCode": str, "sku": str}, float_precision="round_trip")
+    history = history.rename(columns={"sku": "StockCode", "Revenue": "sales"})
     day = pd.Timestamp(date).normalize()
     history["date"] = pd.to_datetime(history["date"]).dt.normalize()
     history = history.loc[(history.StockCode == product) & (history.date < day)]
     if history.duplicated(["StockCode", "date"]).any():
-        raise ValueError("History must have one row per product/day.")
-    dates = pd.date_range(day - pd.Timedelta(days=28), periods=28)
+        raise ValueError("History must have one row per product/period.")
+    weekly = frequency == "weekly"
+    if weekly and day.dayofweek != 0:
+        raise ValueError("Weekly prediction date must be a Monday.")
+    dates = pd.date_range(day - pd.Timedelta(days=196 if weekly else 28), periods=28, freq="7D" if weekly else "D")
     sales = pd.to_numeric(history.set_index("date")["sales"], errors="coerce").reindex(dates)
     if sales.isna().any() or not np.isfinite(sales).all() or (sales < 0).any():
-        raise ValueError("Provide 28 consecutive past days with finite nonnegative sales.")
+        raise ValueError("Provide 28 consecutive past periods with finite nonnegative sales.")
     return {"StockCode": product, "date": str(day.date()), "lag_1": float(sales.iloc[-1]),
             "lag_7": float(sales.iloc[-7]), "mean_7": float(sales.iloc[-7:].mean()),
             "mean_28": float(sales.mean()),
@@ -31,26 +35,50 @@ def sample_from_history(path, product, date):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--input", help="JSON object containing StockCode, date and lag features")
+    parser.add_argument("--input", help="JSON object containing sku (or StockCode), date and lag features")
+    parser.add_argument("--run-id", help="Use models from an explicit trained or completed run")
     parser.add_argument("--model", choices=["linear_regression", "decision_tree", "random_forest", "gradient_boosting"])
-    parser.add_argument("--history", help="CSV with StockCode,date,sales and 28 complete past days")
+    parser.add_argument("--history", help="CSV with sku,date,Revenue (or StockCode,date,sales) and 28 complete past periods")
     parser.add_argument("--product")
     parser.add_argument("--date")
     args = parser.parse_args()
+    from .experiment_tracking import resolve_run
+    published = json.loads((LAB / "models/selection.json").read_text()) if not args.run_id else None
+    try:
+        run = resolve_run(args.run_id or published["run_id"])
+    except ValueError as error:
+        parser.error(str(error))
+    manifest = json.loads((run / "run.json").read_text(encoding="utf-8"))
+    if manifest["status"] not in ("trained", "success"):
+        parser.error("Run must have completed final training.")
+    metadata_path = run / "models/selection.json"
+    if metadata_path.exists():
+        selected = json.loads(metadata_path.read_text(encoding="utf-8"))
+    else:
+        summary = json.loads((run / "preprocessing/summary.json").read_text(encoding="utf-8"))
+        trials = pd.read_csv(run / "tuning/validation_metrics.csv")
+        selected = dict(winner=trials.loc[trials.selection_rmse.idxmin(), "model"],
+                        run_id=run.name, frequency=summary.get("frequency", "daily"))
+    products = json.loads((run / "preprocessing/summary.json").read_text())["products"]
+    frequency = selected.get("frequency", "daily")
     if args.history:
         if args.input or not args.product or not args.date:
             parser.error("Use --history with --product and --date.")
         try:
-            sample = sample_from_history(args.history, args.product, args.date)
+            sample = sample_from_history(args.history, args.product, args.date, frequency)
         except (ValueError, KeyError) as error:
             parser.error(str(error))
     elif args.input:
         sample = json.loads(args.input)
+        if "sku" in sample:
+            sample["StockCode"] = sample.pop("sku")
     else:
         parser.error("Provide --input or --history.")
-    if sample["StockCode"] not in json.loads((LAB / "models/products.json").read_text()):
+    if sample["StockCode"] not in products:
         parser.error("Product was not in the trained product scope.")
     day = pd.Timestamp(sample["date"])
+    if frequency == "weekly" and day.dayofweek != 0:
+        parser.error("Weekly prediction date must be a Monday.")
     if pd.isna(day):
         parser.error("date must be a valid date.")
     sample.update(month=day.month, weekday=day.dayofweek, day_of_year=day.dayofyear)
@@ -58,14 +86,13 @@ def main():
     values = frame[FEATURES[1:8]].to_numpy(dtype=float)
     if not np.isfinite(values).all() or (values[:, :4] < 0).any():
         parser.error("Lag and rolling features must be finite and nonnegative.")
-    selected = json.loads((LAB / "models/selection.json").read_text())
     name = args.model or selected["winner"]
-    model = joblib.load(LAB / "models" / f"{name}.joblib")
+    model = joblib.load(run / "models" / f"{name}.joblib")
     robust_values = frame[FEATURES[8:]].to_numpy(dtype=float)
     if model.preprocessor.feature_set == "robust" and (not np.isfinite(robust_values).all() or (robust_values < 0).any()):
-        parser.error("This model needs complete rolling statistics. Use --history with 28 past days.")
-    result = {"model": name, "predicted_units": float(max(0, model.predict(frame[FEATURES])[0]))}
-    history = LAB / "reports/inference_history.csv"
+        parser.error("This model needs complete rolling statistics. Use --history with 28 past periods.")
+    result = {"model": name, "predicted_revenue" if frequency == "weekly" else "predicted_units": float(max(0, model.predict(frame[FEATURES])[0]))}
+    history = LAB / ("reports/weekly_revenue_inference_history.csv" if frequency == "weekly" else "reports/inference_history.csv")
     history.parent.mkdir(parents=True, exist_ok=True)
     record = {"timestamp_utc": datetime.now(timezone.utc).isoformat(),
               "run_id": selected["run_id"], "StockCode": sample["StockCode"],

@@ -1,0 +1,12 @@
+{
+  "split": "test",
+  "fit_id": "fit_0008",
+  "vectorizer_id": "tfidf_2e6e4c01802c",
+  "accuracy": 0.9918116683725691,
+  "macro_f1": 0.9902309769023098,
+  "ham_as_spam": 5,
+  "spam_as_ham": 3,
+  "spam_precision": 0.9829351535836177,
+  "spam_recall": 0.9896907216494846,
+  "spam_f1": 0.9863013698630136
+}

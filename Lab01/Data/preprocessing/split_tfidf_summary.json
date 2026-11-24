@@ -11,6 +11,7 @@
       2
     ],
     "norm": "l2",
+    "analyzer": "word",
     "fit_split": "subtrain"
   },
   "sets": {

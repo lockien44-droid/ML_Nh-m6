@@ -1,0 +1,75 @@
+{
+  "run_id": "2026-11-24_13-01-41",
+  "dataset_sha256": "ec91eb23b62ec9836d0923f27cadb7d1d57c4185e111144a1e54feb569c4e61d",
+  "source": "data/raw/FMCG_2022_2024.csv",
+  "figures": {
+    "chronological_split.png": {
+      "source": "derived from reference run CSVs",
+      "sha256": "c56fcfdd89e7dfc4ecc9ba29a2b017fabd40d0a2ee3bb89733c065982e74ee02"
+    },
+    "daily_sales.png": {
+      "source": "results/runs/2026-11-24_13-01-41/figures/daily_sales.png",
+      "sha256": "49ed95ea4bbc37efac53c7cd640981b8a4f1047162777c6685b61f25ab531443"
+    },
+    "decision_tree.png": {
+      "source": "results/runs/2026-11-24_13-01-41/figures/decision_tree.png",
+      "sha256": "0866407af92e6183c78aaa06276e42d68732bbfd09b5121f2b04d19db28c5703"
+    },
+    "eda_sales_distribution.png": {
+      "source": "derived from reference run CSVs",
+      "sha256": "7ed0a35cf63450fdc32629af46e0a16f6399a5dfc59403731ec667866378e49c"
+    },
+    "gradient_boosting.png": {
+      "source": "results/runs/2026-11-24_13-01-41/figures/gradient_boosting.png",
+      "sha256": "9874c4525792f4781b31d9c2bd9ba072d00faba9497a39df3e08d34cf765bb6a"
+    },
+    "last_week_baseline.png": {
+      "source": "results/runs/2026-11-24_13-01-41/figures/last_week_baseline.png",
+      "sha256": "792a98bb43ce71e9b2e8b3b1cb6902123cd1aa58c1b9b2a996edd425c155f87e"
+    },
+    "linear_regression.png": {
+      "source": "results/runs/2026-11-24_13-01-41/figures/linear_regression.png",
+      "sha256": "dc5e8e2935a51504c298e6221a36900bcb01795b442b7dca36f72baaa30a31d2"
+    },
+    "mean_baseline.png": {
+      "source": "results/runs/2026-11-24_13-01-41/figures/mean_baseline.png",
+      "sha256": "9b2a105758a68ab726fb67733ec7d9af03cb6d2ab8171efab3fffc39a09c3068"
+    },
+    "metrics_comparison.png": {
+      "source": "results/runs/2026-11-24_13-01-41/figures/metrics_comparison.png",
+      "sha256": "fcc47f181666a4a3f443de1bd4d7c36716f68062710d32838672cdb5b9be3dd7"
+    },
+    "product_mean_baseline.png": {
+      "source": "results/runs/2026-11-24_13-01-41/figures/product_mean_baseline.png",
+      "sha256": "2ea3b8ab670aca14a59d439efe2c15249f7b5cb2732a2cd57c451496e9eb02e8"
+    },
+    "product_rmse_comparison.png": {
+      "source": "derived from reference run CSVs",
+      "sha256": "b220578c2ea8fe6945f92ae1a7e43a2f8233da9e397213b89f0a41d1fa9d3406"
+    },
+    "random_forest.png": {
+      "source": "results/runs/2026-11-24_13-01-41/figures/random_forest.png",
+      "sha256": "ea287768a4c86be279b45e81760d26a0b96e02afb914c5374e3777873d19f5bc"
+    },
+    "rolling_28_baseline.png": {
+      "source": "results/runs/2026-11-24_13-01-41/figures/rolling_28_baseline.png",
+      "sha256": "a20e982da435007718289428d622da8659e5ee1ed736f62185ce69c32bc7789b"
+    },
+    "rolling_7_baseline.png": {
+      "source": "results/runs/2026-11-24_13-01-41/figures/rolling_7_baseline.png",
+      "sha256": "b67ee58bc107b6a6dde44f870ce183edaf1461c0ea4bb851d8447a8075280cfe"
+    },
+    "tuning_selection.png": {
+      "source": "derived from reference run CSVs",
+      "sha256": "3721458d90ace05405b301ae9512be65056bc2af1e29a5a362d0d813c8981e46"
+    },
+    "weekday_4_baseline.png": {
+      "source": "results/runs/2026-11-24_13-01-41/figures/weekday_4_baseline.png",
+      "sha256": "15f2f5c0f24bf9f1e47ea2993a46728951532407c86150ba96c3619a47e9c3f3"
+    },
+    "weekly_revenue.png": {
+      "source": "derived from reference run CSVs",
+      "sha256": "49ed95ea4bbc37efac53c7cd640981b8a4f1047162777c6685b61f25ab531443"
+    }
+  }
+}

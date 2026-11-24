@@ -1,0 +1,85 @@
+{
+  "schema_version": 2,
+  "run_id": "20261119_015148_baseline_tuned",
+  "models": [
+    {
+      "model": "logistic_regression",
+      "variant": "baseline",
+      "fit_id": "fit_0001",
+      "vectorizer_id": "tfidf_2e6e4c01802c",
+      "model_path": "models/baseline/logistic_regression.joblib",
+      "vectorizer_path": "models/vectorizers/tfidf_2e6e4c01802c.joblib",
+      "threshold": 0.5,
+      "fit_split": "subtrain",
+      "refit": false,
+      "training_path": "training/training_summary.csv",
+      "training_history_path": "training/logistic_regression/history.csv"
+    },
+    {
+      "model": "svm",
+      "variant": "baseline",
+      "fit_id": "fit_0002",
+      "vectorizer_id": "tfidf_2e6e4c01802c",
+      "model_path": "models/baseline/svm.joblib",
+      "vectorizer_path": "models/vectorizers/tfidf_2e6e4c01802c.joblib",
+      "threshold": 0.0,
+      "fit_split": "subtrain",
+      "refit": false,
+      "training_path": "training/training_summary.csv",
+      "training_history_path": "training/svm/history.csv"
+    },
+    {
+      "model": "naive_bayes",
+      "variant": "baseline",
+      "fit_id": "fit_0003",
+      "vectorizer_id": "tfidf_2e6e4c01802c",
+      "model_path": "models/baseline/naive_bayes.joblib",
+      "vectorizer_path": "models/vectorizers/tfidf_2e6e4c01802c.joblib",
+      "threshold": null,
+      "fit_split": "subtrain",
+      "refit": false,
+      "training_path": "training/training_summary.csv",
+      "training_history_path": null
+    },
+    {
+      "model": "logistic_regression",
+      "variant": "tuned",
+      "fit_id": "fit_0008",
+      "vectorizer_id": "tfidf_2e6e4c01802c",
+      "model_path": "models/tuned/logistic_regression.joblib",
+      "vectorizer_path": "models/vectorizers/tfidf_2e6e4c01802c.joblib",
+      "threshold": 0.4509449095570793,
+      "fit_split": "subtrain",
+      "refit": false,
+      "training_path": "training/training_summary.csv",
+      "training_history_path": "training/logistic_regression/history.csv"
+    },
+    {
+      "model": "svm",
+      "variant": "tuned",
+      "fit_id": "fit_0040",
+      "vectorizer_id": "tfidf_2e6e4c01802c",
+      "model_path": "models/tuned/svm.joblib",
+      "vectorizer_path": "models/vectorizers/tfidf_2e6e4c01802c.joblib",
+      "threshold": -0.6620115722742366,
+      "fit_split": "subtrain",
+      "refit": false,
+      "training_path": "training/training_summary.csv",
+      "training_history_path": "training/svm/history.csv"
+    },
+    {
+      "model": "naive_bayes",
+      "variant": "tuned",
+      "fit_id": "fit_0046",
+      "vectorizer_id": "tfidf_2e6e4c01802c",
+      "model_path": "models/tuned/naive_bayes.joblib",
+      "vectorizer_path": "models/vectorizers/tfidf_2e6e4c01802c.joblib",
+      "threshold": null,
+      "fit_split": "subtrain",
+      "refit": false,
+      "training_path": "training/training_summary.csv",
+      "training_history_path": null
+    }
+  ],
+  "training_layout": "compact"
+}

@@ -1,0 +1,9 @@
+{
+  "run_id": "2026-11-24_13-01-41",
+  "status": "success",
+  "started_at": "2026-11-24T13:01:41.212936+07:00",
+  "timezone": "Asia/Ho_Chi_Minh",
+  "dataset_sha256": "ec91eb23b62ec9836d0923f27cadb7d1d57c4185e111144a1e54feb569c4e61d",
+  "finished_at": "2026-11-24T13:05:03.350737+07:00",
+  "duration_seconds": 202.1378182999997
+}

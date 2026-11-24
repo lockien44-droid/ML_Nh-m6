@@ -1,146 +1,122 @@
-# Lab02 — Dự đoán số lượng bán sản phẩm
+# Lab02 — Dự báo doanh thu sản phẩm FMCG theo tuần
 
-## Tổng quan
-
-Dự đoán số lượng bán dương theo sản phẩm/ngày từ lịch sử giao dịch E-Commerc.csv.
-Ridge, Decision Tree, Random Forest, Gradient Boosting cùng tiền xử lý và các chỉ số
-được tự cài bằng NumPy/pandas.
+Dùng `data/raw/FMCG_2022_2024.csv` để dự báo Revenue của từng sku trong tuần kế tiếp. Revenue mỗi dòng bằng price_unit × units_sold. Cộng qua tất cả channel, region và pack_type của cùng sku, tuần từ thứ Hai đến Chủ nhật. Đơn vị tiền lấy theo price_unit trong nguồn.
 
 ## Thành viên nhóm
 
-- Nguyễn Thị Thanh Thùy
+- Vũ Thị Thanh Thùy
 - Nguyễn Văn Minh
 - Lê Hồng Sơn
 - Phan Đình Hưng
 - Phạm Minh Tiến
-- Võ Thị Thanh Tú
+- Võ Thị Anh Tú
 
-## Cấu trúc thư mục
+## Dữ liệu hiện tại
 
-```text
-Lab02/
-├── algorithms/                         # Mỗi thuật toán một file và class tự cài
-├── data/
-│   ├── raw/E-Commerc.csv               # Dữ liệu giao dịch gốc
-│   └── preprocessing/                  # Bản train/validation/test và summary mới nhất
-├── src/
-│   ├── config.yaml                     # Dữ liệu, chia thời gian, bộ đặc trưng, siêu tham số
-│   ├── preprocessing.py                # Làm sạch, tổng hợp ngày, lag/rolling và chuẩn hóa
-│   ├── train.py                        # Tạo mô hình và hàm train_model dùng chung
-│   ├── tuning.py                       # Thử cấu hình trên walk-forward và validation
-│   ├── evaluate.py                     # MAE, MSE, RMSE, R² và bảng phân tích lỗi
-│   ├── eda.py                          # Khảo sát doanh số theo ngày và sản phẩm
-│   ├── report.py                       # Hình dự đoán/phần dư và báo cáo Markdown
-│   ├── predict.py                      # Dự đoán một mẫu từ JSON hoặc lịch sử
-│   ├── experiment_tracking.py          # Mã lần chạy, hash, thời gian, trạng thái và sự kiện
-│   └── pipeline.py                     # Điều phối từ dữ liệu gốc đến mô hình và báo cáo
-├── notebooks/
-│   └── Lab02_Product_Sales_Prediction.ipynb  # Đọc và phân tích một lần chạy hoàn tất
-├── models/                             # Phiên bản đang dùng cho demo
-├── results/runs/<run_id>/
-│   ├── run.json                        # Trạng thái, hash dữ liệu và thời lượng
-│   ├── config.yaml                     # Snapshot cấu hình
-│   ├── events.jsonl                    # Sự kiện từng giai đoạn
-│   ├── preprocessing/                  # Train, validation, test và summary
-│   ├── models/                         # Bốn pipeline đã huấn luyện
-│   ├── tuning/
-│   │   ├── validation_metrics.csv      # Chỉ số ứng viên và selection_rmse
-│   │   ├── walk_forward_metrics.csv    # Điểm từng cửa sổ quá khứ
-│   │   └── selection.json              # Cấu hình được chọn cho từng thuật toán
-│   ├── evaluation/                     # Chỉ số test, dự đoán, lỗi lớn, lỗi theo nhóm
-│   ├── figures/                        # EDA và biểu đồ đánh giá
-│   └── report.md                       # Báo cáo của chính lần chạy
-├── reports/                            # Báo cáo từng lần chạy, lịch sử dự đoán
-├── docs/                               # Báo cáo 12 bước và giải thích tham số
-└── README.md
+Tệp có 190.757 dòng, 30 SKU, từ 21/01/2022 đến 31/12/2024. Giữ các dòng bán 0 và loại 3 dòng units_sold âm khỏi mục tiêu doanh thu gộp. Còn 190.754 dòng hợp lệ. Chọn 20 SKU theo Revenue train, có doanh thu dương ở ít nhất 6 tuần train. Chỉ giữ tuần đầy đủ. Tuần thiếu giao dịch được quy ước Revenue bằng 0.
+
+| Tập | Thời gian, bao gồm Chủ nhật cuối tuần | Mẫu |
+|---|---|---:|
+| Train | 08/08/2022–22/10/2023 | 1.260 |
+| Validation | 23/10/2023–26/05/2024 | 620 |
+| Test | 27/05/2024–29/12/2024 | 620 |
+
+Các mốc 60/20/20 được xác định trước khi bỏ 28 tuần đầu thiếu lịch sử. Mô hình chỉ dùng lịch sử trước tuần dự báo cùng thông tin lịch đã biết. Giá, khuyến mãi, tồn kho, giao hàng và số lượng bán của tuần tương lai không được đưa vào đầu vào.
+
+## Chạy riêng theo nhiệm vụ
+
+Chạy từng bước từ thư mục gốc. Lệnh chuẩn bị tạo run_id mới và in ra `Prepared run`. Dùng đúng mã đó cho các bước sau:
+
+```powershell
+python -m Lab02.src.preprocessing
+$runId = "MÃ_LƯỢT_VỪA_TẠO"
+
+python -m Lab02.src.tuning --run-id $runId
+python -m Lab02.src.train --run-id $runId
+python -m Lab02.src.evaluate --run-id $runId
+
+python -m Lab02.src.predict --run-id $runId --history Lab02/data/preprocessing/test.csv --product YO-029 --date 2024-12-30
 ```
 
-## Luồng xử lý
+| Module | Nhiệm vụ | Trạng thái sau bước |
+|---|---|---|
+| preprocessing | Tạo lượt, chụp cấu hình, tổng hợp và chia dữ liệu | prepared |
+| tuning | Thử bộ đặc trưng và siêu tham số trên train/validation | tuned |
+| train | Fit cấu hình đã chọn trên train + validation, lưu bốn mô hình và bộ xử lý | trained |
+| evaluate | Nạp mô hình, chấm test, tạo báo cáo và cập nhật bản demo mặc định | success |
+| predict | Nạp một mô hình của run_id và dự đoán bằng đặc trưng đã chốt | Không huấn luyện |
 
-1. Làm sạch giao dịch và chọn 20 sản phẩm theo số lượng bán trong giai đoạn train.
-2. Tổng hợp ngày, tạo lag/rolling từ các ngày trước và chia train/validation/test theo thời gian.
-3. So sánh basic và trend với lưới tham số. Mỗi lần thử fit riêng bộ tiền xử lý từ phần train tương ứng.
-4. Chọn theo selection_rmse, trung bình RMSE của ba cửa sổ mở rộng và validation cuối.
-5. Huấn luyện lại trên train cộng validation, đánh giá test và lưu mô hình, số liệu, báo cáo.
+Muốn đánh giá lại chỉ chạy evaluate với run_id đã huấn luyện. Muốn demo chỉ chạy predict. Hai lệnh này không gọi tuning hoặc fit.
 
-Bộ sản phẩm được chọn từ train tổng trước các cửa sổ. Điểm walk-forward đánh giá trên
-danh mục đã chốt, chưa mô phỏng việc lựa chọn lại danh mục theo từng mốc.
+Tuning và train đã hoàn tất không được ghi đè trong cùng lượt. Muốn thay cấu hình, tạo lượt mới bằng preprocessing. Lượt lỗi có thể chạy lại bước chưa hoàn tất. Mỗi lượt có khóa trong khi một bước đang chạy, ngăn hai bước sửa cùng kết quả.
 
-## Cài đặt và chạy
+`python -m Lab02.src.pipeline` gọi lần lượt prepare_run → tune_run → train_run → evaluate_run. Có thể dùng `--config đường_dẫn.yaml` với preprocessing hoặc pipeline. Những bước sau đọc config.yaml đã chụp trong lượt đó.
 
-Chạy tại thư mục gốc repository.
+models/selection.json trỏ tới lượt đã đánh giá thành công mới nhất. Nếu bỏ --run-id khi dự đoán, chương trình dùng lượt này. Nếu truyền --run-id, mô hình và bộ xử lý đều lấy trong results/runs/<run_id>/models. CSV data/preprocessing được cập nhật sau bước evaluate thành công.
+
+## Chạy thực nghiệm
+
+Chạy từ thư mục gốc repository:
 
 ```powershell
 python -m pip install -r requirements.txt
 python -m Lab02.src.pipeline
 ```
 
-Notebook đọc run_id đang công bố trong models/selection.json. Chạy các ô từ trên xuống.
-Notebook đọc cấu hình và mô hình từ cùng một lần chạy và không ghi vào thư mục đó.
-Mở bằng VS Code/Jupyter với kernel đã cài các thư viện của dự án.
+Pipeline tạo dữ liệu tuần, khảo sát, thử basic/trend/robust với bốn thuật toán tự cài, chọn cấu hình theo RMSE trung bình ba cửa sổ mở rộng và validation cuối, fit lại trên train + validation rồi đánh giá test. Mỗi lượt có thư mục riêng. models/ và data/preprocessing/ là bản của lượt thành công mới nhất.
 
-## Kết quả và demo
+## Kết quả tham chiếu
 
-Lần chạy tham chiếu **2026-11-18_21-14-12**, giờ Việt Nam. Mô hình demo được chọn theo dữ liệu phát triển là Random Forest.
+Lượt `2026-11-24_13-01-41`. Gradient Boosting được chọn bằng validation, Random Forest có điểm test tốt nhất. Điểm test dùng để mô tả chất lượng sau lựa chọn.
 
-| model | fit_seconds | mae | mse | rmse | r2 |
-| --- | --- | --- | --- | --- | --- |
-| linear_regression | 0.2675 | 76.3529 | 45557.5353 | 213.4421 | 0.1087 |
-| decision_tree | 0.1081 | 77.5818 | 47927.7569 | 218.9241 | 0.0623 |
-| random_forest | 8.3417 | 78.4745 | 46317.0759 | 215.2140 | 0.0938 |
-| gradient_boosting | 1.7710 | 87.9482 | 50810.1504 | 225.4111 | 0.0059 |
-| mean_baseline | 0.0000 | 95.7001 | 51121.7215 | 226.1011 | -0.0002 |
-| last_week_baseline | 0.0000 | 96.2567 | 77078.8940 | 277.6309 | -0.5081 |
-| rolling_7_baseline | 0.0000 | 89.0090 | 50427.5084 | 224.5607 | 0.0134 |
-| rolling_28_baseline | 0.0000 | 82.1792 | 46341.1126 | 215.2699 | 0.0933 |
-| weekday_4_baseline | 0.0000 | 85.3017 | 52048.3475 | 228.1411 | -0.0183 |
-| product_mean_baseline | 0.0000 | 95.4789 | 52808.5168 | 229.8010 | -0.0332 |
+| Mô hình | MAE | RMSE | R² |
+|---|---:|---:|---:|
+| linear_regression | 553.3854 | 692.4685 | 0.6704 |
+| decision_tree | 571.7894 | 721.2805 | 0.6424 |
+| random_forest | 532.7812 | 671.2279 | 0.6903 |
+| gradient_boosting | 546.2439 | 686.1757 | 0.6763 |
+| mean_baseline | 1005.8798 | 1227.8928 | -0.0364 |
+| last_week_baseline | 910.3548 | 1172.0392 | 0.0557 |
+| rolling_7_baseline | 606.0890 | 771.6073 | 0.5907 |
+| rolling_28_baseline | 1057.0406 | 1288.8630 | -0.1419 |
+| weekday_4_baseline | 1208.4414 | 1476.5895 | -0.4987 |
+| product_mean_baseline | 973.9377 | 1191.3819 | 0.0243 |
 
-```powershell
-python -m Lab02.src.predict --model random_forest --input '{"StockCode":"84077","date":"2011-12-10","lag_1":10,"lag_7":15,"mean_7":12,"mean_28":11}'
+![So sánh chỉ số test](docs/images/metrics_comparison.png)
+
+## Cấu trúc
+
+```text
+Lab02/
+├── algorithms/          Ridge, Decision Tree, Random Forest, Gradient Boosting
+├── data/
+│   ├── raw/FMCG_2022_2024.csv
+│   └── preprocessing/   train.csv, validation.csv, test.csv, summary.json
+├── src/                 Tiền xử lý, tuning, train, đánh giá, dự đoán và báo cáo
+├── models/              Bốn mô hình demo, danh mục SKU, lựa chọn bằng validation
+├── results/runs/        Dữ liệu, tuning, mô hình và kết quả riêng từng lượt
+├── reports/             Markdown, HTML, PDF và ảnh theo lượt
+├── docs/                Phương pháp, tham số, hình minh họa
+└── notebooks/           Notebook đọc và kiểm tra lượt tham chiếu
 ```
 
-Các thống kê trong ví dụ là minh họa. Có thể dùng --history với CSV chứa 28 ngày
-liên tiếp trước ngày dự đoán, kèm --product và --date để tính đặc trưng từ lịch sử.
+CSV tiền xử lý và CSV đánh giá của FMCG dùng sku, date, Revenue. Bên trong mô hình, StockCode và sales là ánh xạ tương ứng để tái sử dụng thuật toán. Các đặc trưng lag_7, mean_28 và zero_days_28 có đơn vị tuần trong cấu hình này. Đọc bảng đầy đủ trong tài liệu tham số.
 
-Giả định ngày không có giao dịch là 0, chưa phân biệt hết hàng hoặc ngày nghỉ.
-Phạm vi chỉ gồm 20 sản phẩm đã chọn. Đây là dự báo từng ngày với lịch sử thực tế
-của ngày trước, chưa phải dự báo nhiều ngày liên tiếp không có dữ liệu cập nhật.
+## Dự đoán từ lịch sử tuần
 
-## Tài liệu chi tiết
+```powershell
+python -m Lab02.src.predict --run-id 2026-11-24_13-01-41 --history Lab02/data/preprocessing/test.csv --product YO-029 --date 2024-12-30
+```
 
-- [Báo cáo theo 12 bước](docs/Lab02_Report.md)
-- [Tham số và đặc trưng](docs/parameters.md)
-- [Notebook](notebooks/Lab02_Product_Sales_Prediction.ipynb)
-- [Báo cáo lần chạy tham chiếu](results/runs/2026-11-18_21-14-12/report.md)
+CSV cần sku,date,Revenue, đủ 28 tuần liên tiếp trước tuần dự báo của SKU đã được huấn luyện. date là thứ Hai. Dòng từ tuần dự báo trở đi được bỏ qua. Có thể thêm --model random_forest. Đầu ra predicted_revenue được ghi cùng run_id vào reports/weekly_revenue_inference_history.csv.
 
+Đây là dự báo một bước với lịch sử thực tế đã biết. Khi dự báo nhiều tuần liên tiếp, cần quy trình tạo lịch sử cho các tuần chưa quan sát.
 
-## Báo cáo tự động
+## Tài liệu và kết quả
 
-    reports/
-    ├── report_<run_id>.md       # Báo cáo Markdown hiện hành
-    ├── report_<run_id>.html     # Trang kết quả và hình
-    ├── report_<run_id>.pdf      # Bản PDF để trình bày
-    ├── figures/<run_id>/
-    │   ├── eda/
-    │   ├── training/
-    │   └── evaluation/
-    ├── metrics_summary.csv     # Kết quả test theo Run_ID
-    ├── validation_summary.csv  # Điểm ứng viên theo Run_ID
-    ├── inference_history.csv   # Lịch sử dự đoán sản phẩm qua CLI
-    └── archive/                # Báo cáo của các lượt trước
-
-Pipeline tự xuất ba định dạng. Các báo cáo cũ chuyển vào archive, hình giữ theo Run_ID.
-inference_history.csv ở Lab02 chỉ ghi dự đoán sản phẩm. Để tạo lại báo cáo mà không
-huấn luyện lại, chạy từ thư mục gốc:
-
-    python -m Lab02.src.report --run-id 2026-11-18_21-14-12
-
-Lệnh này cập nhật báo cáo hiện hành cho lần chạy được chọn và cập nhật bảng lịch sử
-theo Run_ID, không nhân đôi các dòng của cùng một lần chạy.
-
-
-Bộ đặc trưng robust thêm thống kê phân bố và mùa vụ từ 28 ngày quá khứ. Khi mô hình chọn robust, nên dùng --history để tự tính đầy đủ đặc trưng. Bảng so sánh từng sản phẩm nằm trong evaluation/product_baseline_comparison.csv của lần chạy.
-
-
-Các lần chạy được lưu cục bộ và bỏ qua trong Git. Repository giữ một lần chạy tham chiếu đầy đủ để đối chiếu báo cáo. Tham chiếu hiện tại là `2026-11-18_21-14-12`. Chạy pipeline sẽ tạo thư mục mới, không ghi đè thư mục tham chiếu.
+- [Báo cáo chi tiết](docs/Lab02_Report.md)
+- [Giải thích tham số và đặc trưng](docs/parameters.md)
+- [Notebook thực nghiệm](notebooks/Lab02_Product_Sales_Prediction.ipynb)
+- [Báo cáo lượt tham chiếu](reports/archive/report_2026-11-24_13-01-41.md)
+- [Báo cáo PDF](reports/archive/report_2026-11-24_13-01-41.pdf)
+- [Chỉ số test](results/runs/2026-11-24_13-01-41/evaluation/metrics.csv)

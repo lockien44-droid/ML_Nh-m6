@@ -1,0 +1,13 @@
+{
+  "winner": "gradient_boosting",
+  "run_id": "2026-11-24_17-02-43",
+  "frequency": "weekly",
+  "target": "Revenue per sku/week",
+  "unit": "source price_unit currency",
+  "fit_seconds": {
+    "decision_tree": 0.25383460000011837,
+    "gradient_boosting": 2.1642940000019735,
+    "linear_regression": 0.09929839999676915,
+    "random_forest": 12.009432100003323
+  }
+}

@@ -1,6 +1,8 @@
 data:
-  path: data/raw/E-Commerc.csv
-  encoding: cp1252
+  path: data/raw/FMCG_2022_2024.csv
+  encoding: utf-8
+  schema: fmcg_weekly
+  min_active_weeks: 6
   top_products: 20
 split:
   train_fraction: 0.6
@@ -132,4 +134,4 @@ models:
 experiment:
   product_scope: fixed_top_products_selected_from_full_train
   selection: mean_rmse_three_expanding_folds_and_validation
-  forecast: rolling_one_day_ahead
+  forecast: rolling_one_week_ahead

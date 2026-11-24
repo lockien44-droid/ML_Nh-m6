@@ -1,23 +1,21 @@
-"""Select Lab01 model settings on the fixed validation split."""
-
-import json
-from itertools import product
+"""Fit candidates on subtrain and select settings/thresholds on validation only."""
 from dataclasses import dataclass
-from time import perf_counter
+from hashlib import sha256
+from itertools import product
+import json
 from pathlib import Path
 
+import joblib
 import numpy as np
 import pandas as pd
 import yaml
-from sklearn.metrics import (
-    average_precision_score, f1_score, precision_recall_curve, precision_recall_fscore_support,
-)
+from matplotlib.figure import Figure
 from sklearn.model_selection import train_test_split
 
 from ..algorithms import LinearSVM, LogisticRegression, MultinomialNaiveBayes
 from .preprocessing import build_vectorizer
-from .evaluate import evaluate
-from .train import train_model
+from .train import fit_experiment, save_selected_training_plot
+from .evaluate import evaluate, save_errors
 
 
 def threshold_metrics(actual, scores, threshold):
@@ -26,68 +24,45 @@ def threshold_metrics(actual, scores, threshold):
     fp = int(np.count_nonzero(predicted & (actual == 0)))
     fn = int(np.count_nonzero(~predicted & (actual == 1)))
     tn = len(actual) - tp - fp - fn
-    f1 = 2 * tp / (2 * tp + fp + fn)
-    ham_f1 = 2 * tn / (2 * tn + fp + fn)
-    return dict(threshold=float(threshold), macro_f1=(f1 + ham_f1) / 2,
-                spam_precision=tp / (tp + fp) if tp + fp else 0.0,
-                spam_recall=tp / (tp + fn), spam_f1=f1, fn=fn, fp=fp,
-                accuracy=(tp + tn) / len(actual), predicted_spam=tp + fp, confusion_matrix=[[tn, fp], [fn, tp]])
+    divide = lambda a, b: a / b if b else 0.0
+    spam_f1 = divide(2 * tp, 2 * tp + fp + fn)
+    ham_f1 = divide(2 * tn, 2 * tn + fp + fn)
+    return dict(threshold=float(threshold), macro_f1=(spam_f1 + ham_f1) / 2,
+                spam_precision=divide(tp, tp + fp), spam_recall=divide(tp, tp + fn),
+                spam_f1=spam_f1, fn=fn, fp=fp, tn=tn, tp=tp,
+                accuracy=divide(tp + tn, len(actual)), predicted_spam=tp + fp,
+                confusion_matrix=[[tn, fp], [fn, tp]])
 
 
-def select_svm(X, y, V, actual, directory, candidates):
-    """Jointly select hyperparameters, class weights and threshold; retain fitted winner."""
-    directory.mkdir(parents=True, exist_ok=True)
-    rows, distributions, all_thresholds = [], [], []
-    options = [("unweighted", None), ("balanced", "balanced"),
-               ("spam_x2", {0: 1, 1: 2}), ("spam_x3", {0: 1, 1: 3}),
-               ("spam_x4", {0: 1, 1: 4})]
-    winner, chosen, chosen_key = None, None, None
-    for index, params in enumerate(candidates):
-        for name, weight in options:
-            candidate_id = f"candidate_{index}_{name}"
-            started = perf_counter()
-            model = train_model(LinearSVM(**params, class_weight=weight), X, y)
-            fit_seconds = perf_counter() - started
-            scores = model.decision_function(V)
-            ap = average_precision_score(actual, scores)
-            precision, recall, thresholds = precision_recall_curve(actual, scores)
-            pd.DataFrame(dict(precision=precision, recall=recall,
-                threshold=np.r_[thresholds, np.nan])).to_csv(
-                    directory / f"{candidate_id}_pr.csv", index=False)
-            for label in (0, 1):
-                subset = scores[actual == label]
-                quantiles = np.quantile(subset, [0, .1, .5, .9, 1])
-                distributions.append(dict(candidate_id=candidate_id, model=name, label=label,
-                    min=quantiles[0], p10=quantiles[1], median=quantiles[2], p90=quantiles[3],
-                    max=quantiles[4], nonnegative_rate=float(np.mean(subset >= 0))))
-            choices = [threshold_metrics(actual, scores, t) for t in np.unique(
-                np.r_[0.0, scores, np.nextafter(scores.max(), np.inf)])]
-            all_thresholds.extend(dict(candidate_id=candidate_id, **params, class_weight=weight, **row) for row in choices)
-            best = max(choices, key=lambda r: (r['macro_f1'], -r['fp'], -abs(r['threshold'])))
-            for group, metrics in zip(('A', 'B') if weight is None else ('C', 'D'),
-                                      (threshold_metrics(actual, scores, 0), best)):
-                rows.append(dict(group=group, candidate_id=candidate_id, model=name,
-                    **params, class_weight=weight, fit_seconds=fit_seconds,
-                    average_precision=ap, **metrics))
-            key = (best['macro_f1'], weight is None, -best['fp'], -abs(best['threshold']))
-            if chosen_key is None or key > chosen_key:
-                chosen_key = key
-                model.threshold = best['threshold']
-                winner = model
-                chosen = dict(candidate_id=candidate_id, **params, class_weight=weight,
-                              fit_seconds=fit_seconds, **best)
-    pd.DataFrame(rows).to_csv(directory / 'validation.csv', index=False)
-    pd.DataFrame(all_thresholds).to_csv(directory / 'all_thresholds.csv', index=False)
-    pd.DataFrame(distributions).to_csv(directory / 'score_distribution.csv', index=False)
-    (directory / 'selection.json').write_text(json.dumps(
-        dict(spam_prevalence=float(actual.mean()), selected=chosen), indent=2) + '\n', encoding='utf-8')
-    return winner, chosen
+def model_scores(model, X):
+    """Return the score and its meaning; SVM/NB scores are not probabilities."""
+    if isinstance(model, LogisticRegression):
+        return model.predict_proba(X), 'spam_probability'
+    if isinstance(model, LinearSVM):
+        return model.decision_function(X), 'decision_score'
+    scores = X @ model.feature_log_prob.T + model.class_log_prior
+    return np.asarray(scores[:, 1] - scores[:, 0]).ravel(), 'log_joint_difference'
 
 
-def training_record(name, variant, model, fit_seconds):
-    return dict(model=name, variant=variant, fit_seconds=fit_seconds, fit_split='subtrain',
-        **{key: getattr(model, key, None) for key in
-           ('learning_rate', 'n_iterations', 'C', 'alpha', 'threshold', 'class_weight')})
+def save_threshold_search(directory, fit_id, choices, chosen, default, score_type, mode):
+    destination = directory / 'threshold_search' / fit_id
+    destination.mkdir(parents=True, exist_ok=False)
+    rows = pd.DataFrame(choices).drop(columns='confusion_matrix').sort_values('threshold')
+    rows['selected'] = rows.threshold.eq(chosen['threshold'])
+    rows['is_default'] = rows.threshold.eq(default['threshold'])
+    rows.to_csv(destination / 'thresholds.csv', index=False)
+    metadata = dict(fit_id=fit_id, split='validation', metric='macro_f1', mode=mode,
+                    score_type=score_type, default=default, selected=chosen,
+                    tie_break='fewer FP, then closer to default threshold')
+    (destination / 'selection.json').write_text(json.dumps(metadata, indent=2), encoding='utf-8')
+    figure = Figure(figsize=(7, 4), layout='tight')
+    ax = figure.subplots()
+    ax.plot(rows.threshold, rows.macro_f1, label='Validation Macro-F1')
+    ax.axvline(default['threshold'], color='gray', linestyle='--', label='Default')
+    ax.axvline(chosen['threshold'], color='red', linestyle=':', label='Selected')
+    ax.set(title=f'Threshold search / {fit_id}', xlabel=score_type, ylabel='Macro-F1')
+    ax.legend()
+    figure.savefig(destination / 'thresholds.png', dpi=130)
 
 
 @dataclass
@@ -100,112 +75,136 @@ class SelectionResult:
     X: object
     V: object
     training: list
+    vectorizer_id: str
+    selected_fits: dict
+    baseline_fits: dict
 
 
 def select_models(train, directory, model_name=None):
+    """One summary row per fit; a threshold sweep reuses the same fitted weights."""
+    directory = Path(directory)
     directory.mkdir(parents=True, exist_ok=True)
-    config = yaml.safe_load(Path(__file__).with_name('config.yaml').read_text(encoding='utf-8'))
-    fraction, seed = config['validation']['fraction'], config['validation']['seed']
-    subtrain, validation = train_test_split(
-        train, test_size=fraction, random_state=seed, stratify=train['label_num'])
-    subtrain.to_csv(directory / 'subtrain_clean.csv', index=False)
-    validation.to_csv(directory / 'validation_clean.csv', index=False)
+    run = directory.parent
+    snapshot = run / 'config.yaml'
+    config = yaml.safe_load((snapshot if snapshot.exists() else Path(__file__).with_name('config.yaml')).read_text(encoding='utf-8'))
+    subtrain, validation = train_test_split(train, test_size=config['validation']['fraction'],
+        random_state=config['validation']['seed'], stratify=train.label_num)
+    prep = run / 'preprocessing'
+    prep.mkdir(parents=True, exist_ok=True)
+    subtrain.to_csv(prep / 'subtrain_clean.csv', index=False)
+    validation.to_csv(prep / 'validation_clean.csv', index=False)
     vectorizer = build_vectorizer(config.get('features'))
-    X = vectorizer.fit_transform(subtrain['text_clean'])
-    V = vectorizer.transform(validation['text_clean'])
-    y, actual = subtrain['label_num'].to_numpy(), validation['label_num'].to_numpy()
-    baselines = dict(logistic_regression=LogisticRegression(), svm=LinearSVM(),
-                     naive_bayes=MultinomialNaiveBayes())
-    if model_name:
-        baselines = {model_name: baselines[model_name]}
-    baseline_rows, training = [], []
-    for name, model in baselines.items():
-        started = perf_counter()
-        if name == 'naive_bayes':
-            train_model(model, X, y)
-        else:
-            train_model(model, X, y, directory / f'{name}_trace.csv')
-        training.append(training_record(name, 'baseline', model, perf_counter() - started))
-        predicted = model.predict(V)
-        metrics = evaluate(actual, predicted, validation['email_id'],
-                           directory / 'baseline_validation' / name)
-        baseline_rows.append(dict(model=name, split='validation', **metrics,
-            predicted_spam=int(predicted.sum()), predicted_ham=int(len(predicted) - predicted.sum())))
-    pd.DataFrame(baseline_rows).to_csv(directory / 'baseline_validation.csv', index=False)
+    X = vectorizer.fit_transform(subtrain.text_clean)
+    V = vectorizer.transform(validation.text_clean)
+    digest = sha256(subtrain[['email_id', 'text_clean', 'label_num']].to_csv(index=False).encode('utf-8'))
+    digest.update(json.dumps(vectorizer.get_params(), default=str, sort_keys=True).encode())
+    digest.update(vectorizer.idf_.tobytes())
+    vectorizer_id = 'tfidf_' + digest.hexdigest()[:12]
+    vectorizers = run / 'models/vectorizers'
+    vectorizers.mkdir(parents=True, exist_ok=True)
+    joblib.dump(vectorizer, vectorizers / f'{vectorizer_id}.joblib')
+    vector_metadata = dict(vectorizer_id=vectorizer_id, fit_split='subtrain', refit=False,
+        parameters=vectorizer.get_params(), subtrain_sha256=sha256(
+            subtrain[['email_id', 'text_clean', 'label_num']].to_csv(index=False).encode('utf-8')).hexdigest(),
+        features=int(X.shape[1]), samples=int(X.shape[0]))
+    (vectorizers / f'{vectorizer_id}.json').write_text(json.dumps(vector_metadata, indent=2, default=str), encoding='utf-8')
+    y, actual = subtrain.label_num.to_numpy(), validation.label_num.to_numpy()
+    classes = dict(logistic_regression=LogisticRegression, svm=LinearSVM, naive_bayes=MultinomialNaiveBayes)
+    names = [model_name] if model_name else list(classes)
+    if any(name not in classes for name in names):
+        raise ValueError('Unknown model name.')
+    training, rows, baselines, models, selected_fits, baseline_fits = [], [], {}, {}, {}, {}
+    fit_root = run / 'training'
+    fit_root.mkdir(exist_ok=True)
+    existing_ids = [int(path.parent.name.split('_')[1])
+                    for path in fit_root.rglob('training.json')
+                    if path.parent.name.startswith('fit_')]
+    if (fit_root / 'training_summary.csv').exists():
+        existing_ids.extend(int(value.split('_')[1]) for value in pd.read_csv(fit_root / 'training_summary.csv').fit_id)
+    sequence = max(existing_ids, default=0)
+
+    def fit_one(name, parameters, variant):
+        nonlocal sequence
+        sequence += 1
+        fit_id = f'fit_{sequence:04d}'
+        print(f'{fit_id}: {variant}/{name}', flush=True)
+        model, info = fit_experiment(classes[name](**parameters), X, y, run=run,
+            fit_id=fit_id, model_name=name, parameters=parameters,
+            vectorizer_id=vectorizer_id, variant=variant)
+        training.append(info)
+        return model, info
+
+    def summary_row(name, info, default, chosen, variant):
+        return dict(fit_id=info['fit_id'], model=name, variant=variant,
+            parameters=json.dumps(info['parameters'], sort_keys=True), vectorizer_id=vectorizer_id,
+            fit_seconds=info['fit_seconds'], default_threshold=default['threshold'] if name!='naive_bayes' else None,
+            selected_threshold=chosen['threshold'] if name!='naive_bayes' else None,
+            default_macro_f1=default['macro_f1'], selected_macro_f1=chosen['macro_f1'],
+            macro_f1=chosen['macro_f1'], accuracy=chosen['accuracy'], spam_precision=chosen['spam_precision'],
+            spam_recall=chosen['spam_recall'], spam_f1=chosen['spam_f1'], fp=chosen['fp'], fn=chosen['fn'], selected=False)
+
+    for name in names:
+        baseline, info = fit_one(name, {}, 'baseline')
+        scores, _ = model_scores(baseline, V)
+        default = threshold_metrics(actual, scores, .5 if name=='logistic_regression' else np.nextafter(0.,np.inf) if name=='naive_bayes' else 0.)
+        rows.append(summary_row(name, info, default, default, 'baseline'))
+        baselines[name], baseline_fits[name] = baseline, info['fit_id']
 
     logistic = config['logistic_regression']
-    candidates = {
-        'logistic_regression': (LogisticRegression, [
-            dict(learning_rate=rate, n_iterations=steps)
-            for rate, steps in product(logistic['learning_rate'], logistic['n_iterations'])]),
-        'naive_bayes': (MultinomialNaiveBayes, [
-            dict(alpha=alpha) for alpha in config['naive_bayes']['alpha']]),
-    }
-    if model_name:
-        candidates = {name: value for name, value in candidates.items() if name == model_name}
-    rows, selected, models, logistic_threshold_rows = [], {}, {}, []
-    for name, (cls, settings) in candidates.items():
-        best_macro = -np.inf
-        for index, params in enumerate(settings):
-            started = perf_counter()
-            model = train_model(cls(**params), X, y)
-            fit_seconds = perf_counter() - started
-            params = dict(params)
-            if name == 'logistic_regression':
-                probabilities = model.predict_proba(V)
-                thresholds = np.unique(np.r_[0.0, 0.5, 1.0, probabilities,
-                    np.nextafter(probabilities.max(), np.inf)])
-                choices = [threshold_metrics(actual, probabilities, t)
-                           for t in thresholds if 0 <= t <= 1]
-                configured = logistic.get('threshold')
-                thresholds = logistic.get('threshold_candidates')
-                if configured is not None:
-                    if not 0 <= float(configured) <= 1:
-                        raise ValueError("Logistic threshold must be between 0 and 1.")
-                    choices = [threshold_metrics(actual, probabilities, float(configured))]
-                elif thresholds:
-                    if any(not 0 <= float(t) <= 1 for t in thresholds):
-                        raise ValueError("Logistic thresholds must be between 0 and 1.")
-                    choices = [threshold_metrics(actual, probabilities, float(t)) for t in thresholds]
-                best = max(choices, key=lambda r: (
-                    r['macro_f1'], -r['fp'], -abs(r['threshold'] - 0.5)))
-                logistic_threshold_rows.extend(dict(candidate_id=index, **params, **row) for row in choices)
-                model.threshold = best['threshold']
-                params['threshold'] = model.threshold
-            predicted = model.predict(V)
-            macro = f1_score(actual, predicted, average='macro')
-            precision, recall, f1, _ = precision_recall_fscore_support(
-                actual, predicted, average='binary', zero_division=0)
-            rows.append(dict(model=name, candidate_id=index, **params, macro_f1=macro,
-                fit_seconds=fit_seconds, spam_precision=precision, spam_recall=recall,
-                spam_f1=f1, predicted_spam=int(predicted.sum())))
-            if macro > best_macro:
-                best_macro = macro
-                selected[name] = params
-                models[name] = model
-                chosen_fit_seconds = fit_seconds
-                chosen_index = index
-        training.append(training_record(name, 'tuned', models[name], chosen_fit_seconds))
-        if name == 'logistic_regression':
-            for row in logistic_threshold_rows:
-                row['selected_configuration'] = row['candidate_id'] == chosen_index
-
-    if model_name in (None, 'svm'):
-        models['svm'], svm_choice = select_svm(
-            X, y, V, actual, directory / 'svm_study', config['svm']['candidates'])
-        selected['svm'] = {key: svm_choice[key] for key in
-            ('learning_rate', 'n_iterations', 'C', 'class_weight', 'threshold')}
-        training.append(training_record('svm', 'tuned', models['svm'], svm_choice['fit_seconds']))
-        rows.append(dict(model='svm', **svm_choice))
-    pd.DataFrame(logistic_threshold_rows).to_csv(directory / 'logistic_threshold_validation.csv', index=False)
-    pd.DataFrame(rows).to_csv(directory / 'validation.csv', index=False)
-    summary = dict(seed=seed, validation_fraction=fraction, fit_split='subtrain', refit=False,
-        subtrain_counts=subtrain['label_num'].value_counts().to_dict(),
-        validation_counts=validation['label_num'].value_counts().to_dict(), selected=selected)
-    (directory / 'selection.json').write_text(json.dumps(summary, indent=2) + '\n', encoding='utf-8')
-    for name, model in models.items():
-        output = directory / 'selected_validation' / name
-        evaluate(actual, model.predict(V), validation['email_id'], output)
-        from .evaluate import save_errors
-        save_errors(model, V, validation, output)
-    return SelectionResult(models, baselines, vectorizer, subtrain, validation, X, V, training)
+    settings = {
+        'logistic_regression': [dict(learning_rate=r, n_iterations=n) for r,n in product(logistic['learning_rate'], logistic['n_iterations'])],
+        'naive_bayes': [dict(alpha=a) for a in config['naive_bayes']['alpha']],
+        'svm': [dict(**params, class_weight=weight) for params in config['svm']['candidates']
+                for weight in (None, 'balanced', {0:1,1:2}, {0:1,1:3}, {0:1,1:4})]}
+    best_keys = {}
+    for name in names:
+        for parameters in settings[name]:
+            model, info = fit_one(name, parameters, 'candidate')
+            scores, score_type = model_scores(model, V)
+            default_t = .5 if name=='logistic_regression' else np.nextafter(0.,np.inf) if name=='naive_bayes' else 0.
+            default = threshold_metrics(actual, scores, default_t)
+            chosen = default
+            if name != 'naive_bayes':
+                if name == 'logistic_regression':
+                    values = np.unique(np.r_[0., .5, 1., scores, np.nextafter(scores.max(), np.inf)])
+                    values = values[(values>=0)&(values<=1)]
+                    mode = 'automatic'
+                    if logistic.get('threshold') is not None:
+                        values = [float(logistic['threshold'])]; mode = 'fixed'
+                    elif logistic.get('threshold_candidates'):
+                        values = list(map(float,logistic['threshold_candidates'])); mode = 'configured_candidates'
+                    if any(not np.isfinite(t) or not 0<=t<=1 for t in values):
+                        raise ValueError('Logistic thresholds must be finite and between 0 and 1.')
+                else:
+                    values = np.unique(np.r_[0., scores, np.nextafter(scores.max(), np.inf)])
+                    mode = 'automatic'
+                choices = [threshold_metrics(actual,scores,t) for t in values]
+                chosen = max(choices,key=lambda r:(r['macro_f1'],-r['fp'],-abs(r['threshold']-default_t)))
+                model.threshold = chosen['threshold']
+                save_threshold_search(directory,info['fit_id'],choices,chosen,default,score_type,mode)
+            row = summary_row(name,info,default,chosen,'candidate')
+            rows.append(row)
+            # Preserve existing selection rules, including SVM preference for unweighted fits.
+            key = (chosen['macro_f1'], parameters.get('class_weight') is None,
+                   -chosen['fp'], -abs(chosen['threshold'])) if name=='svm' else (chosen['macro_f1'],)
+            if name not in best_keys or key > best_keys[name]:
+                best_keys[name] = key
+                models[name], selected_fits[name] = model,info['fit_id']
+    for name, fit_id in selected_fits.items():
+        save_selected_training_plot(run, name, fit_id)
+    for row in rows:
+        row['selected'] = row['fit_id'] == selected_fits.get(row['model'])
+    pd.DataFrame(rows).to_csv(directory / 'validation_summary.csv',index=False)
+    summary = dict(metric='validation_macro_f1',fit_split='subtrain',refit=False,
+        vectorizer_id=vectorizer_id,selected_fits=selected_fits,baseline_fits=baseline_fits,
+        validation_fraction=config['validation']['fraction'],seed=config['validation']['seed'],
+        selected={name:{**next(i['requested_parameters'] for i in training if i['fit_id']==selected_fits[name]),
+            **({'threshold':float(model.threshold)} if name!='naive_bayes' else {})} for name,model in models.items()})
+    (directory / 'selection.json').write_text(json.dumps(summary,indent=2),encoding='utf-8')
+    for variant, fitted in [('baseline',baselines),('selected',models)]:
+        for name,model in fitted.items():
+            output = directory / 'validation' / name / variant
+            evaluate(actual,model.predict(V),validation.email_id,output)
+            save_errors(model,V,validation,output)
+    return SelectionResult(models,baselines,vectorizer,subtrain,validation,X,V,training,
+                           vectorizer_id,selected_fits,baseline_fits)

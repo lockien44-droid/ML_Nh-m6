@@ -1,0 +1,12 @@
+seed: 42
+test_fraction: 0.2
+validation_fraction: 0.2
+mlp:
+  - {hidden: [32, 16], learning_rate: 0.001, epochs: 100, batch_size: 32, patience: 15}
+  - {hidden: [64, 32], learning_rate: 0.001, epochs: 100, batch_size: 32, patience: 15}
+decision_tree:
+  - {max_depth: 6, min_samples_leaf: 5}
+  - {max_depth: 12, min_samples_leaf: 5}
+random_forest:
+  - {n_estimators: 100, max_depth: 16, min_samples_leaf: 2}
+  - {n_estimators: 100, max_depth: null, min_samples_leaf: 2}

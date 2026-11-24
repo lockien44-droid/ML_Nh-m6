@@ -36,3 +36,93 @@ def training_run(root, dataset):
         manifest["finished_at"] = datetime.now(timezone(timedelta(hours=7))).isoformat()
         manifest["duration_seconds"] = perf_counter() - started
         (run / "run.json").write_text(json.dumps(manifest, indent=2))
+
+
+def resolve_run(run_id):
+    """Resolve one run without allowing paths outside the run root."""
+    from .preprocessing import LAB
+    root = (LAB / "results/runs").resolve()
+    run = (root / run_id).resolve()
+    if run.parent != root or not (run / "run.json").is_file():
+        raise ValueError("Unknown run ID.")
+    return run
+
+
+def load_split(run, name):
+    """Map exported FMCG columns to the model's internal representation."""
+    import pandas as pd
+    return pd.read_csv(run / "preprocessing" / f"{name}.csv",
+                       dtype={"sku": str, "StockCode": str},
+                       float_precision="round_trip").rename(
+                           columns={"sku": "StockCode", "Revenue": "sales"})
+
+
+@contextmanager
+def run_stage(run, stage):
+    """Protect stage ordering and record progress for separately invoked commands."""
+    lock = run / ".stage.lock"
+    try:
+        stream = lock.open("x")
+    except FileExistsError:
+        raise ValueError("Another stage is running for this run.") from None
+    try:
+        stream.close()
+        path = run / "run.json"
+        manifest = json.loads(path.read_text(encoding="utf-8"))
+        prerequisites = {
+            "tuning": ["preprocessing/summary.json", "preprocessing/train.csv", "preprocessing/validation.csv"],
+            "training": ["tuning/selection.json", "tuning/validation_metrics.csv"],
+            "evaluation": ["models/linear_regression.joblib", "models/decision_tree.joblib",
+                           "models/random_forest.joblib", "models/gradient_boosting.joblib",
+                           "preprocessing/test.csv"],
+        }
+        if any(not (run / item).is_file() for item in prerequisites[stage]):
+            raise ValueError(f"Required artifacts are missing before {stage}.")
+        if stage == "tuning" and (run / "tuning/selection.json").exists():
+            raise ValueError("Tuning is already complete. Create a new run to change configurations.")
+        if stage == "training" and ("training" in manifest.get("completed_stages", [])
+                or (manifest.get("status") == "success" and any((run / "models").glob("*.joblib")))):
+            raise ValueError("Final models already exist. Use evaluate or create a new run.")
+        def save():
+            temporary = path.with_suffix(".tmp")
+            temporary.write_text(json.dumps(manifest, indent=2), encoding="utf-8")
+            temporary.replace(path)
+        def log(status):
+            with (run / "events.jsonl").open("a", encoding="utf-8") as events:
+                events.write(json.dumps({"stage": stage, "status": status,
+                    "utc": datetime.now(timezone.utc).isoformat()}) + "\n")
+        manifest.update(status="running", current_stage=stage)
+        manifest.pop("error", None)
+        save()
+        log("started")
+        started = perf_counter()
+        try:
+            yield
+        except BaseException as error:
+            manifest.update(status="failed", error=str(error))
+            log("failed")
+            raise
+        else:
+            manifest["status"] = {"tuning": "tuned", "training": "trained", "evaluation": "success"}[stage]
+            manifest.setdefault("completed_stages", [])
+            if stage not in manifest["completed_stages"]:
+                manifest["completed_stages"].append(stage)
+            log("success")
+        finally:
+            manifest["finished_at"] = datetime.now(timezone(timedelta(hours=7))).isoformat()
+            manifest["duration_seconds"] = manifest.get("duration_seconds", 0) + perf_counter() - started
+            save()
+    finally:
+        lock.unlink()
+
+
+def stage_main(description, operation):
+    """Share run selection and clear errors across stage entry points."""
+    import argparse
+    parser = argparse.ArgumentParser(description=description)
+    parser.add_argument("--run-id", required=True)
+    args = parser.parse_args()
+    try:
+        operation(resolve_run(args.run_id))
+    except (ValueError, FileNotFoundError) as error:
+        parser.error(str(error))

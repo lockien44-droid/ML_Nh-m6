@@ -14,13 +14,17 @@ from .preprocessing import LAB
 
 
 def generate(run, results, selection):
+    summary = json.loads((run / "preprocessing/summary.json").read_text(encoding="utf-8"))
+    weekly = summary.get("frequency") == "weekly"
+    fmcg = summary.get("revenue_definition", "").startswith("price_unit")
+    unit = "Revenue" if fmcg else "Sales revenue" if weekly else "Units"
     for name in results.model:
-        data = pd.read_csv(run / "evaluation" / f"{name}.csv")
+        data = pd.read_csv(run / "evaluation" / f"{name}.csv").rename(columns={"sku": "StockCode", "Revenue": "sales"})
         fig, axes = plt.subplots(1, 2, figsize=(11, 4))
         axes[0].scatter(data.sales, data.predicted, alpha=0.25, s=8)
         limit = max(data.sales.max(), data.predicted.max())
         axes[0].plot([0, limit], [0, limit], "--")
-        axes[0].set(xlabel="Actual units", ylabel="Predicted units", title=name)
+        axes[0].set(xlabel=f"Actual {unit}", ylabel=f"Predicted {unit}", title=name)
         axes[1].hist(data.residual, bins=40)
         axes[1].set(xlabel="Actual - predicted", ylabel="Count", title="Residual distribution")
         fig.tight_layout()
@@ -38,12 +42,12 @@ def generate(run, results, selection):
     for row in results.itertuples(index=False, name=None):
         table.append("| " + " | ".join(f"{value:.4f}" if isinstance(value, float) else str(value) for value in row) + " |")
     lines = ["# Lab02 — Kết quả thực nghiệm", "",
-             "Dự đoán số lượng bán dương theo sản phẩm/ngày. Chọn mô hình bằng RMSE trung bình của ba cửa sổ mở rộng trên train và validation cuối.",
+             f"Dự đoán số lượng bán dương theo {summary.get('entity', 'product')}/ngày. Chọn mô hình bằng RMSE trung bình của ba cửa sổ mở rộng trên train và validation cuối.",
              "", "## Kết quả test", "", "\n".join(table), "",
              "## Phạm vi đánh giá", "",
              "Đánh giá từng ngày với lịch sử bán thực tế đến hết ngày trước đó. "
              "Các ngày không ghi nhận giao dịch được xem là 0. "
-             "Chọn 20 sản phẩm bán nhiều nhất từ train. "
+             f"Đối tượng dự báo là {summary.get('entity', 'product')}, gồm {len(summary['products'])} nhóm được chọn từ train. "
              "Mô hình chỉ áp dụng cho nhóm sản phẩm này và dữ liệu lịch sử cùng nguồn.",
              "", "MAE là sai số tuyệt đối trung bình. MSE là sai số bình phương trung bình. "
              "RMSE là căn MSE, cùng đơn vị số lượng. R² so sánh sai số với dự đoán trung bình của tập đánh giá.",
@@ -61,12 +65,12 @@ def generate(run, results, selection):
     improvement = 100 * (1 - chosen.rmse / baseline.rmse)
     rolling = results.set_index("model").loc["rolling_28_baseline"] if "rolling_28_baseline" in set(results.model) else None
     product_scores = pd.read_csv(run / "evaluation/product_baseline_comparison.csv") if (run / "evaluation/product_baseline_comparison.csv").exists() else pd.DataFrame()
-    errors = pd.read_csv(run / "evaluation" / f"{winner}_largest_errors.csv")
+    errors = pd.read_csv(run / "evaluation" / f"{winner}_largest_errors.csv").rename(columns={"sku": "StockCode", "Revenue": "sales"})
     lines.extend(["", "## Kết luận và giới hạn", "",
                   f"Mô hình được chọn bằng dữ liệu phát triển là **{winner}**. RMSE test {chosen.rmse:.4f}, R² {chosen.r2:.4f}. Mức giảm RMSE so với baseline trung bình là {improvement:.2f}%.",
-                  "R² thấp cho thấy mô hình còn hạn chế trong giải thích biến động doanh số. Không dùng bảng test để chọn lại cấu hình.",
+                  f"R² test của mô hình được chọn là {chosen.r2:.4f}. Kết quả phản ánh một lần chia theo thời gian. Không dùng bảng test để chọn lại cấu hình.",
                   "Top sản phẩm được cố định từ toàn bộ train trước walk-forward. Các fold kiểm chứng dự báo trong phạm vi sản phẩm này, chưa mô phỏng việc chọn lại danh mục tại từng mốc quá khứ.",
-                  "Không có giao dịch được quy ước là 0, nhưng dữ liệu không phân biệt hết hàng, đóng cửa và không có nhu cầu. Hai ngày biên bị loại theo giả định dữ liệu có thể chưa đủ ngày.",
+                  "Không có giao dịch được quy ước là 0, nhưng dữ liệu không phân biệt hết hàng, đóng cửa và không có nhu cầu. " + ("Dữ liệu nhóm hàng giữ nguyên hai ngày biên." if summary.get('entity') == 'product_category' else "Hai ngày biên bị loại theo giả định dữ liệu có thể chưa đủ ngày."),
                   "Các đặc trưng robust gồm trung vị, độ lệch chuẩn 7/28 ngày, số ngày doanh số 0, trung bình cùng thứ bốn tuần và cuối tuần. Tất cả chỉ dùng lịch sử trước ngày dự báo.",
                   "", "## Các lỗi lớn nhất của mô hình được chọn", "",
                   "| Sản phẩm | Ngày | Thực tế | Dự đoán | Sai số tuyệt đối |",
@@ -77,11 +81,57 @@ def generate(run, results, selection):
         wins = int((product_scores.mean_baseline_improvement_pct > 0).sum())
         lines.extend(["", f"Mô hình cải thiện RMSE so với baseline trung bình trên {wins}/{len(product_scores)} sản phẩm. Xem evaluation/product_baseline_comparison.csv để đối chiếu từng sản phẩm với các baseline lịch sử."])
     if rolling is not None:
-        lines.extend(["", f"Baseline trung bình 28 ngày đạt RMSE {rolling.rmse:.4f}, trong khi mô hình được chọn đạt {chosen.rmse:.4f}. Chênh lệch nhỏ cho thấy lợi ích hiện tại của mô hình phức tạp còn hạn chế."])
+        lines.extend(["", f"Baseline trung bình 28 ngày đạt RMSE {rolling.rmse:.4f}, trong khi mô hình được chọn đạt {chosen.rmse:.4f}. Mức giảm RMSE so với baseline này là {100 * (1 - chosen.rmse / rolling.rmse):.2f}%."])
     if (run / "evaluation/before_after.csv").exists():
         lines.extend(["", "So sánh trước/sau được lưu trong evaluation/before_after.csv. Đây là đối chiếu mô tả trên cùng test, không phải bằng chứng cải thiện trên một tập test mới độc lập."])
+    if weekly:
+        lines.extend(["", "## Định nghĩa mục tiêu và dữ liệu", "", f"Đơn vị {summary.get('unit', 'source currency')}. Công thức {summary.get('revenue_definition', 'source Sales')}. Số dòng nguồn {summary['raw_rows']}, số dòng hợp lệ {summary['clean_transaction_rows']}, loại {summary.get('invalid_rows_removed', 0)} dòng không hợp lệ sau loại trùng."])
+        lines = [line.replace("số lượng bán dương", "doanh thu Sales")
+                 .replace("/ngày", "/tuần").replace("từng ngày", "từng tuần")
+                 .replace("ngày trước đó", "tuần trước đó").replace("Các ngày không", "Các tuần không")
+                 .replace("cùng đơn vị số lượng", "cùng đơn vị doanh thu nguồn")
+                 .replace("Dữ liệu nhóm hàng giữ nguyên hai ngày biên.", "Chỉ giữ tuần đầy đủ từ thứ Hai đến Chủ nhật.")
+                 .replace("Hai ngày biên bị loại theo giả định dữ liệu có thể chưa đủ ngày.", "Chỉ giữ tuần đầy đủ từ thứ Hai đến Chủ nhật.")
+                 .replace("ngày doanh số 0", "tuần doanh thu 0")
+                 .replace("7/28 ngày", "7/28 tuần").replace("28 ngày", "28 tuần")
+                 .replace("bốn tuần và cuối tuần", "bốn mốc cách 7 tuần và cờ cuối tuần") for line in lines]
+        lines[2:2] = [f"Nguồn {summary.get('source', 'CSV')}. Tuần bắt đầu thứ Hai. Chọn tối đa 20 sản phẩm theo doanh thu train với ít nhất 6 tuần có giao dịch trong train. Tuần thiếu giao dịch được quy ước Sales bằng 0. Các đặc trưng nội bộ lag_7 và mean_28 lần lượt là 7 tuần trước và trung bình 28 tuần trước. Đầu vào không dùng Profit, Ship Date hoặc số lượng/giảm giá của tuần dự báo.", ""]
+    split_lines = []
+    for split in ("train", "validation", "test"):
+        dates = pd.read_csv(run / "preprocessing" / f"{split}.csv", usecols=["date"])["date"]
+        start = pd.Timestamp(dates.min())
+        end = pd.Timestamp(dates.max()) + pd.Timedelta(days=6 if weekly else 0)
+        split_lines.append(f"{split}: {start:%d/%m/%Y} đến {end:%d/%m/%Y}, {len(dates)} mẫu")
+    context = ". ".join(split_lines) + "."
+    lines[4:4] = ["## Khoảng thời gian dữ liệu", "",
+                  "Ngày kết thúc dưới đây bao gồm Chủ nhật cuối tuần." if weekly else "Mốc đầu và cuối của từng tập dữ liệu.",
+                  "", *["- " + line for line in split_lines], ""]
+    if fmcg:
+        lines = [line.replace("doanh thu Sales", "doanh thu Revenue")
+                 .replace("theo product/tuần", "theo sku/tuần")
+                 .replace("Đối tượng dự báo là product, gồm", "Đối tượng dự báo là sku, gồm")
+                 .replace("nhóm được chọn từ train", "sku được chọn từ train")
+                 .replace("Sales bằng 0", "Revenue bằng 0")
+                 .replace("*_StockCode_metrics.csv", "*_sku_metrics.csv")
+                 .replace("| Sản phẩm | Ngày | Thực tế |", "| sku | Tuần bắt đầu | Revenue thực tế |")
+                 for line in lines]
+        for index, line in enumerate(lines):
+            if line.startswith("Nguồn "):
+                lines[index] = (f"Nguồn {summary['source']}. Revenue được tính bằng price_unit × units_sold "
+                    "cho mỗi dòng hợp lệ, rồi cộng gộp theo sku × tuần qua tất cả channel, region và pack_type. "
+                    "Tuần từ thứ Hai đến Chủ nhật. Chọn tối đa 20 sku theo Revenue train, có doanh thu dương "
+                    "ở ít nhất 6 tuần train. Tuần thiếu giao dịch được quy ước Revenue bằng 0. "
+                    "Đầu vào dự báo chỉ dùng lịch sử Revenue và lịch của tuần cần dự báo.")
+        lines += ["", "## Lựa chọn bằng validation và kết quả test", "",
+                  "Điểm chọn cấu hình là selection_rmse, trung bình RMSE của ba cửa sổ train mở rộng và validation cuối. "
+                  "Cấu hình được chốt trước khi đánh giá test.",
+                  f"**{results.loc[results.rmse.idxmin(), 'model']}** có RMSE thấp nhất trên test trong bảng này. "
+                  f"**{winner}** là mô hình được chọn từ validation và dùng mặc định để dự đoán. "
+                  "Thứ hạng test được dùng để mô tả kết quả, không dùng để thay đổi mô hình đã chọn."]
+        context = ("Revenue = price_unit × units_sold, cộng theo sku × tuần qua channel, region và pack_type. "
+                   "Tuần bắt đầu thứ Hai. " + context)
     markdown = "\n".join(lines)
-    publish_reports(run, results, selection, markdown)
+    publish_reports(run, results, selection, markdown, context)
     return markdown
 
 
@@ -97,7 +147,7 @@ def update_history(path, data, run_id):
     temporary.replace(path)
 
 
-def publish_reports(run, results, selection, markdown):
+def publish_reports(run, results, selection, markdown, context=""):
     """Publish portable MD/HTML/PDF, figures, histories and archive older reports."""
     from reportlab.lib import colors
     from reportlab.lib.pagesizes import A4, landscape
@@ -127,18 +177,22 @@ def publish_reports(run, results, selection, markdown):
         markdown += f"- **{name}** — {json.dumps(parameters, ensure_ascii=False)}\n"
     eda_image = figure_root / "eda/daily_sales.png"
     if eda_image.exists():
-        markdown += f"\n## EDA\n\n![Doanh số theo ngày]({eda_image.relative_to(reports).as_posix()})\n"
+        markdown += f"\n## EDA\n\n![Doanh số theo kỳ]({eda_image.relative_to(reports).as_posix()})\n"
     (reports / f"{stem}.md").write_text(markdown, encoding="utf-8")
-    title = "Lab02 - Product Sales Prediction - " + run.name
-    note = ("Daily positive units sold for 20 selected products. Configuration selected "
+    title = "Lab02 - Product Revenue Prediction - " + run.name if "sku_metrics.csv" in markdown else "Lab02 - Product Sales Prediction - " + run.name
+    summary = json.loads((run / "preprocessing/summary.json").read_text(encoding="utf-8"))
+    note = (f"{summary.get('frequency', 'daily')} target: {summary.get('target', 'sales')}. Configuration selected "
             "using expanding-window and held-out validation RMSE. Final fit uses train plus "
-            "validation. Test predicts one day ahead with observed past sales.")
+            f"validation. Test predicts one {'week' if summary.get('frequency') == 'weekly' else 'day'} ahead with observed past revenue/sales. " + context)
     analysis = markdown.split("## Kết luận và giới hạn")[-1].split("## Cấu hình được chọn")[0]
     paragraphs = [re.sub(r"\*\*(.*?)\*\*", r"\1", line) for line in analysis.splitlines()
                   if line.strip() and not line.startswith(("|", "##", "!"))]
     winner = pd.read_csv(run / "tuning/validation_metrics.csv").sort_values("selection_rmse", kind="stable").iloc[0]["model"]
-    errors = pd.read_csv(run / "evaluation" / f"{winner}_largest_errors.csv").head(5)
+    errors = pd.read_csv(run / "evaluation" / f"{winner}_largest_errors.csv").rename(columns={"sku": "StockCode", "Revenue": "sales"}).head(5)
     error_columns = ["StockCode", "date", "sales", "predicted", "absolute_error"]
+    if summary.get("revenue_definition", "").startswith("price_unit"):
+        errors = errors.rename(columns={"StockCode": "sku", "sales": "Revenue"})
+        error_columns = ["sku", "date", "Revenue", "predicted", "absolute_error"]
     analysis_html = "".join("<p>" + escape(line) + "</p>" for line in paragraphs)
     analysis_html += errors[error_columns].to_html(index=False, float_format=lambda v: f"{v:.2f}")
     gallery = "".join(

@@ -1,0 +1,12 @@
+{
+  "vectorizer_id": "tfidf_2e6e4c01802c",
+  "fit_split": "subtrain",
+  "refit": false,
+  "vectorizer_path": "models/vectorizers/tfidf_2e6e4c01802c.joblib",
+  "feature_names": "feature_names.csv",
+  "split_rows": {
+    "subtrain": "../../subtrain_clean.csv",
+    "validation": "../../validation_clean.csv",
+    "test": "../../test_clean.csv"
+  }
+}

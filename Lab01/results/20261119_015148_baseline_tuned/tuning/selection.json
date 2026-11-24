@@ -1,0 +1,35 @@
+{
+  "metric": "validation_macro_f1",
+  "fit_split": "subtrain",
+  "refit": false,
+  "vectorizer_id": "tfidf_2e6e4c01802c",
+  "selected_fits": {
+    "logistic_regression": "fit_0008",
+    "svm": "fit_0040",
+    "naive_bayes": "fit_0046"
+  },
+  "baseline_fits": {
+    "logistic_regression": "fit_0001",
+    "svm": "fit_0002",
+    "naive_bayes": "fit_0003"
+  },
+  "validation_fraction": 0.2,
+  "seed": 43,
+  "selected": {
+    "logistic_regression": {
+      "learning_rate": 5.0,
+      "n_iterations": 1000,
+      "threshold": 0.4509449095570793
+    },
+    "svm": {
+      "learning_rate": 0.01,
+      "n_iterations": 3000,
+      "C": 100,
+      "class_weight": null,
+      "threshold": -0.6620115722742366
+    },
+    "naive_bayes": {
+      "alpha": 0.01
+    }
+  }
+}

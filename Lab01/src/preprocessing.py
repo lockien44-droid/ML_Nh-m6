@@ -49,6 +49,7 @@ def main(output_dir=PREPROCESSING_DIR):
         "empty_rows_removed": len(cleaned) - len(nonempty),
         "duplicates_removed": len(nonempty) - len(unique),
         "clean_rows": len(unique),
+        "label_counts": {str(label): int(count) for label, count in unique.label_num.value_counts().items()},
     }
     (output_dir / "summary.json").write_text(
         json.dumps(summary, indent=2) + "\n", encoding="utf-8",
@@ -57,13 +58,15 @@ def main(output_dir=PREPROCESSING_DIR):
     print("Example:", clean_text("<b>FREE!!!</b> Click now for the prize."))
 
 
-def split_clean_data(output_dir=PREPROCESSING_DIR):
+def split_clean_data(output_dir=PREPROCESSING_DIR, settings=None):
     cleaned = pd.read_csv(output_dir / "cleaned_raw.csv", keep_default_na=False)
     X = cleaned["text_clean"]
     y = cleaned["label_num"]
 
+    settings = settings or {}
     X_train, X_test, y_train, y_test = train_test_split(
-        X, y, test_size=0.2, stratify=y, random_state=42,
+        X, y, test_size=settings.get("test_size", 0.2),
+        stratify=y, random_state=settings.get("random_state", 42),
     )
 
     # Cùng chỉ số dòng giữ văn bản, nhãn và email_id đi cùng nhau.

@@ -1,0 +1,110 @@
+{
+  "run_id": "20261119_015148_baseline_tuned",
+  "status": "success",
+  "started_at": "2026-11-19T01:51:48.781696+07:00",
+  "dataset": "spam_ham_dataset.csv",
+  "timezone": "Asia/Ho_Chi_Minh",
+  "experiment": "baseline_tuned",
+  "dataset_sha256": "65386c0361eb99c0be3835d6488cbb9dda2ae0575eb37d2ab543c52a2c7619cb",
+  "schema_version": 2,
+  "selected_fits": {
+    "logistic_regression": "fit_0008",
+    "svm": "fit_0040",
+    "naive_bayes": "fit_0046"
+  },
+  "vectorizer_ids": [
+    "tfidf_2e6e4c01802c"
+  ],
+  "selection_metric": "validation_macro_f1",
+  "resolved_config": {
+    "validation": {
+      "fraction": 0.2,
+      "seed": 43
+    },
+    "logistic_regression": {
+      "threshold": null,
+      "threshold_candidates": [],
+      "learning_rate": [
+        0.1,
+        1.0,
+        5.0
+      ],
+      "n_iterations": [
+        1000,
+        3000
+      ]
+    },
+    "svm": {
+      "candidates": [
+        {
+          "learning_rate": 0.01,
+          "n_iterations": 1000,
+          "C": 1
+        },
+        {
+          "learning_rate": 0.05,
+          "n_iterations": 3000,
+          "C": 1
+        },
+        {
+          "learning_rate": 0.05,
+          "n_iterations": 1000,
+          "C": 10
+        },
+        {
+          "learning_rate": 0.1,
+          "n_iterations": 3000,
+          "C": 10
+        },
+        {
+          "learning_rate": 0.01,
+          "n_iterations": 1000,
+          "C": 50
+        },
+        {
+          "learning_rate": 0.05,
+          "n_iterations": 3000,
+          "C": 50
+        },
+        {
+          "learning_rate": 0.01,
+          "n_iterations": 3000,
+          "C": 100
+        }
+      ]
+    },
+    "naive_bayes": {
+      "alpha": [
+        1.0,
+        0.01,
+        0.1,
+        0.5,
+        2.0
+      ]
+    },
+    "features": {
+      "analyzer": "word",
+      "ngram_range": [
+        1,
+        2
+      ],
+      "max_features": 50000
+    },
+    "split": {
+      "test_size": 0.2,
+      "random_state": 42,
+      "stratified": true
+    }
+  },
+  "python_version": "3.13.9",
+  "library_versions": {
+    "numpy": "2.4.6",
+    "pandas": "2.3.3",
+    "scipy": "1.15.2",
+    "scikit-learn": "1.7.2",
+    "joblib": "1.5.2"
+  },
+  "finished_at": "2026-11-19T01:54:01.499103+07:00",
+  "duration_seconds": 132.717,
+  "training_layout": "compact"
+}

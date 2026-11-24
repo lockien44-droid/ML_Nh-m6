@@ -41,7 +41,30 @@ def tune(train, validation, config, output):
                 best = selection_rmse
                 selected[name] = dict(parameters)
                 best_prediction = prediction.copy()
-        evaluate(validation, best_prediction, output / f"{name}_validation.csv")
+        export_columns = dict(entity_column="sku", target_column="Revenue") if config["data"].get("schema") == "fmcg_weekly" else {}
+        evaluate(validation, best_prediction, output / f"{name}_validation.csv", **export_columns)
     pd.DataFrame(rows).to_csv(output / "validation_metrics.csv", index=False)
     pd.DataFrame(fold_rows).to_csv(output / "walk_forward_metrics.csv", index=False)
     return selected
+
+
+def tune_run(run):
+    """Select configurations without reading the test split."""
+    import json
+    import yaml
+    from .experiment_tracking import load_split, run_stage
+    with run_stage(run, "tuning"):
+        config = yaml.safe_load((run / "config.yaml").read_text(encoding="utf-8"))
+        selected = tune(load_split(run, "train"), load_split(run, "validation"),
+                        config, run / "tuning")
+        (run / "tuning/selection.json").write_text(json.dumps(selected, indent=2), encoding="utf-8")
+    print("Tuned run:", run.name, flush=True)
+
+
+def main():
+    from .experiment_tracking import stage_main
+    stage_main("Choose Lab02 configurations using development data.", tune_run)
+
+
+if __name__ == "__main__":
+    main()

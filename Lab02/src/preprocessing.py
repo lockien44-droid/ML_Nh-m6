@@ -19,21 +19,61 @@ def prepare_data(config, output):
         raise ValueError("top_products must be a positive integer.")
     raw = pd.read_csv(LAB / config["data"]["path"], encoding=config["data"]["encoding"],
                       dtype={"InvoiceNo": str, "StockCode": str})
+    fmcg = config["data"].get("schema") == "fmcg_weekly"
+    weekly = config["data"].get("schema") in ("superstore_weekly", "fmcg_weekly")
+    category_data = config["data"].get("schema") == "category_orders"
+    if fmcg:
+        raw = raw.rename(columns={"date": "InvoiceDate", "sku": "StockCode", "price_unit": "UnitPrice"})
+        raw["Quantity"] = pd.to_numeric(raw["units_sold"], errors="coerce") * pd.to_numeric(raw["UnitPrice"], errors="coerce")
+    elif weekly:
+        raw = raw.drop(columns=["Quantity"])
+        raw = raw.rename(columns={"Order ID": "InvoiceNo", "Product ID": "StockCode",
+                                  "Order Date": "InvoiceDate", "Sales": "Quantity"})
+        raw["UnitPrice"] = 1.0
+    if category_data:
+        raw = raw.rename(columns={"order_id": "InvoiceNo", "order_date": "InvoiceDate",
+                                  "product_category": "StockCode", "quantity": "Quantity",
+                                  "unit_price": "UnitPrice"})
+        raw["InvoiceNo"] = raw["InvoiceNo"].astype("string")
+        raw["StockCode"] = raw["StockCode"].astype("string")
     original_rows = len(raw)
-    raw["InvoiceDate"] = pd.to_datetime(raw["InvoiceDate"], format="%m/%d/%Y %H:%M", errors="coerce")
+    date_format = "%Y-%m-%d" if fmcg else ("%m/%d/%Y" if category_data or weekly else "%m/%d/%Y %H:%M")
+    raw["InvoiceDate"] = pd.to_datetime(raw["InvoiceDate"], format=date_format, errors="coerce")
     raw["Quantity"] = pd.to_numeric(raw["Quantity"], errors="coerce")
     raw["UnitPrice"] = pd.to_numeric(raw["UnitPrice"], errors="coerce")
     raw = raw.drop_duplicates()
-    valid = (raw["InvoiceDate"].notna() & raw["StockCode"].str.fullmatch(r"\d{5}[A-Za-z]*", na=False)
-             & ~raw["InvoiceNo"].str.startswith("C", na=False)
-             & (raw["Quantity"] > 0) & (raw["UnitPrice"] > 0))
+    valid_codes = (raw["StockCode"].str.strip().ne("").fillna(False) if category_data or weekly
+                   else raw["StockCode"].str.fullmatch(r"\d{5}[A-Za-z]*", na=False))
+    valid = (raw["InvoiceDate"].notna() & valid_codes
+             & (True if weekly else ~raw["InvoiceNo"].str.startswith("C", na=False))
+             & (raw["Quantity"] >= 0 if fmcg else raw["Quantity"] > 0)
+             & np.isfinite(raw["Quantity"]) & np.isfinite(raw["UnitPrice"])
+             & (raw["UnitPrice"] > 0))
     clean = raw.loc[valid].copy()
+    if clean.empty:
+        raise ValueError("No valid sales transactions after cleaning.")
     clean["date"] = clean["InvoiceDate"].dt.normalize()
     # The first and last days can be partially recorded.
-    days = pd.date_range(clean["date"].min() + pd.Timedelta(days=1),
-                         clean["date"].max() - pd.Timedelta(days=1))
+    trim = pd.Timedelta(days=0 if category_data else 1)
+    days = pd.date_range(clean["date"].min() + trim, clean["date"].max() - trim)
+    if weekly:
+        first = clean["date"].min()
+        last = clean["date"].max()
+        start = first.to_period("W-SUN").start_time
+        if start < first:
+            start += pd.Timedelta(weeks=1)
+        end = last.to_period("W-SUN").start_time
+        if end + pd.Timedelta(days=6) > last:
+            end -= pd.Timedelta(weeks=1)
+        days = pd.date_range(start, end, freq="W-MON")
+        clean["date"] = clean["date"].dt.to_period("W-SUN").dt.start_time
     train_end = days[int(len(days) * config["split"]["train_fraction"]) - 1]
     products = clean.loc[clean["date"] <= train_end].groupby("StockCode")["Quantity"].sum()
+    if weekly:
+        active = clean.loc[clean["date"].between(days[0], train_end) & (clean["Quantity"] > 0)].groupby("StockCode")["date"].nunique()
+        products = products.loc[active.reindex(products.index, fill_value=0) >= config["data"].get("min_active_weeks", 6)]
+        if products.empty:
+            raise ValueError("No products meet the training-history requirement.")
     products = products.nlargest(config["data"]["top_products"]).index
     daily = clean.groupby(["StockCode", "date"])["Quantity"].sum()
     grid = pd.MultiIndex.from_product([products, days], names=["StockCode", "date"])
@@ -61,11 +101,23 @@ def prepare_data(config, output):
     for name, part in [("train", train), ("validation", validation), ("test", test)]:
         if part.empty:
             raise ValueError(f"Empty {name} split.")
-        part.to_csv(output / f"{name}.csv", index=False)
+        exported = part.rename(columns={"StockCode": "sku", "sales": "Revenue"}) if fmcg else part
+        exported.to_csv(output / f"{name}.csv", index=False)
     summary = {"raw_rows": original_rows, "deduplicated_rows": len(raw), "duplicate_rows_removed": original_rows - len(raw), "clean_transaction_rows": len(clean),
                "products": list(products), "train_end": str(train_end.date()),
                "validation_end": str(validation_end.date()),
-               "target": "positive units sold per product/day"}
+               "entity": "product_category" if category_data else "product",
+               "frequency": "weekly" if weekly else "daily",
+               "unit": "source price_unit currency" if fmcg else ("source Sales currency" if weekly else "units"),
+               "revenue_definition": "price_unit * units_sold; negative units excluded; zero units retained" if fmcg else "source Sales" if weekly else "quantity",
+               "invalid_rows_removed": len(raw) - len(clean),
+               "source": config["data"]["path"],
+               "target": "Revenue per sku/week" if fmcg else "Sales revenue per product/week" if weekly else ("positive units sold per category/day" if category_data else "positive units sold per product/day")}
+    summary["split_periods"] = {
+        name: {"rows": len(part), "start": str(part.date.min().date()),
+               "end": str((part.date.max() + pd.Timedelta(days=6 if weekly else 0)).date())}
+        for name, part in (("train", train), ("validation", validation), ("test", test))
+    }
     return train, validation, test, summary
 
 
@@ -124,3 +176,42 @@ class Preprocessor:
 
 def build_preprocessor(feature_set="basic"):
     return Preprocessor(feature_set)
+
+
+def prepare_run(config_path=None):
+    """Create an immutable config snapshot and prepare one new experiment."""
+    import json
+    from hashlib import sha256
+    import yaml
+    from .experiment_tracking import training_run
+    from .eda import analyze
+
+    config = yaml.safe_load(Path(config_path or LAB / "src/config.yaml").read_text(encoding="utf-8"))
+    with training_run(LAB / "results/runs", LAB / config["data"]["path"]) as (run, log):
+        for folder in ("preprocessing", "tuning", "evaluation", "figures", "models"):
+            (run / folder).mkdir()
+        (run / "config.yaml").write_text(yaml.safe_dump(config), encoding="utf-8")
+        log("preprocessing")
+        train, validation, test, summary = prepare_data(config, run / "preprocessing")
+        summary["run_id"] = run.name
+        summary["dataset_sha256"] = sha256((LAB / config["data"]["path"]).read_bytes()).hexdigest()
+        (run / "preprocessing/summary.json").write_text(json.dumps(summary, indent=2), encoding="utf-8")
+        analyze(pd.concat([train, validation, test]), run / "figures", summary)
+    manifest_path = run / "run.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest.update(status="prepared", completed_stages=["preprocessing"])
+    manifest_path.write_text(json.dumps(manifest, indent=2), encoding="utf-8")
+    print("Prepared run:", run.name, flush=True)
+    return run
+
+
+def main():
+    import argparse
+    parser = argparse.ArgumentParser(description="Prepare data for a new Lab02 run.")
+    parser.add_argument("--config")
+    args = parser.parse_args()
+    prepare_run(args.config)
+
+
+if __name__ == "__main__":
+    main()

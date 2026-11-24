@@ -48,7 +48,9 @@ def training_run(root, dataset):
     def save_manifest():
         target = directory / "run.json"
         temporary = target.with_suffix(".tmp")
-        temporary.write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
+        current = json.loads(target.read_text(encoding='utf-8')) if target.exists() else {}
+        current.update(manifest)
+        temporary.write_text(json.dumps(current, indent=2) + "\n", encoding="utf-8")
         temporary.replace(target)
 
     save_manifest()

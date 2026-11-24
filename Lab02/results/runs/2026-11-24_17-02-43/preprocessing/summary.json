@@ -1,0 +1,56 @@
+{
+  "raw_rows": 190757,
+  "deduplicated_rows": 190757,
+  "duplicate_rows_removed": 0,
+  "clean_transaction_rows": 190754,
+  "products": [
+    "YO-029",
+    "YO-005",
+    "YO-012",
+    "YO-014",
+    "MI-026",
+    "YO-001",
+    "RE-004",
+    "MI-006",
+    "RE-007",
+    "RE-015",
+    "YO-009",
+    "MI-023",
+    "JU-021",
+    "YO-003",
+    "SN-027",
+    "YO-016",
+    "SN-010",
+    "RE-025",
+    "MI-022",
+    "YO-020"
+  ],
+  "train_end": "2023-10-16",
+  "validation_end": "2024-05-20",
+  "entity": "product",
+  "frequency": "weekly",
+  "unit": "source price_unit currency",
+  "revenue_definition": "price_unit * units_sold; negative units excluded; zero units retained",
+  "invalid_rows_removed": 3,
+  "source": "data/raw/FMCG_2022_2024.csv",
+  "target": "Revenue per sku/week",
+  "split_periods": {
+    "train": {
+      "rows": 1260,
+      "start": "2022-08-08",
+      "end": "2023-10-22"
+    },
+    "validation": {
+      "rows": 620,
+      "start": "2023-10-23",
+      "end": "2024-05-26"
+    },
+    "test": {
+      "rows": 620,
+      "start": "2024-05-27",
+      "end": "2024-12-29"
+    }
+  },
+  "run_id": "2026-11-24_17-02-43",
+  "dataset_sha256": "ec91eb23b62ec9836d0923f27cadb7d1d57c4185e111144a1e54feb569c4e61d"
+}

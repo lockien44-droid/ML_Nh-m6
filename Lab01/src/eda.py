@@ -16,6 +16,7 @@ from scipy.sparse import load_npz
 from sklearn.metrics import ConfusionMatrixDisplay, auc, confusion_matrix, roc_curve
 
 from .preprocessing import DATA_DIR, LAB_DIR
+from .train import training_directory, load_training_record
 
 MODELS = {"logistic_regression": "lr", "naive_bayes": "nb", "svm": "svm"}
 DISPLAY = {"logistic_regression": "Logistic Regression", "naive_bayes": "Naive Bayes", "svm": "Linear SVM"}
@@ -141,7 +142,14 @@ def save_preprocessing(run, prep, output, X_train):
         ax.text(0, .88, fill(excerpt, width=90), va="top", transform=ax.transAxes, fontsize=9)
     fig.savefig(output / "cleaning_comparison.png", dpi=150)
 
-    names = pd.read_csv(prep / "09_tfidf/feature_names.csv")["feature_name"]
+    info_path = run / 'models/model_info.json'
+    if info_path.exists():
+        info = json.loads(info_path.read_text(encoding='utf-8'))
+        vectorizer_id = info['models'][0]['vectorizer_id']
+        names_path = prep / 'tfidf' / vectorizer_id / 'feature_names.csv'
+    else:
+        names_path = prep / '09_tfidf/feature_names.csv'
+    names = pd.read_csv(names_path)['feature_name']
     averages = np.asarray(X_train.mean(axis=0)).ravel()
     top = np.argsort(averages)[-20:]
     fig = Figure(figsize=(7, 6), layout="tight")
@@ -158,6 +166,8 @@ def save_evaluation(run, output, metrics, X_test, y_test):
     rates = []
     for ax, (name, short) in zip(fig.subplots(1, 3), ((name, MODELS[name]) for name in metrics['model'])):
         source = run / "evaluation" / name
+        if (source / "tuned").is_dir():
+            source = source / "tuned"
         copy2(source / "confusion_matrix.png", output / f"confusion_matrix_{short}.png")
         predictions = pd.read_csv(source / "predictions.csv")
         if not np.array_equal(predictions["actual"], y_test):
@@ -167,7 +177,10 @@ def save_evaluation(run, output, metrics, X_test, y_test):
         ax.set_title(DISPLAY[name])
         tn, fp, fn, tp = matrix.ravel()
         rates.append({"Model": short.upper(), "TPR": tp / (tp + fn), "FPR": fp / (fp + tn)})
-        model = joblib.load(run / "models" / f"{name}.joblib")
+        model_path = run / 'models/tuned' / f'{name}.joblib'
+        if not model_path.exists():
+            model_path = run / 'models' / f'{name}.joblib'
+        model = joblib.load(model_path)
         if short == "lr":
             scores = model.predict_proba(X_test)
         elif short == "svm":
@@ -195,6 +208,13 @@ def save_evaluation(run, output, metrics, X_test, y_test):
 
 def threshold_comparison(run):
     """Report the selected configuration's saved validation sweep, without fitting."""
+    if (run / 'models/model_info.json').exists():
+        choice = json.loads((run / 'tuning/selection.json').read_text(encoding='utf-8'))
+        fit_id = choice['selected_fits'].get('logistic_regression')
+        if not fit_id:
+            return pd.DataFrame(columns=['Run_ID', 'split', 'threshold'])
+        rows = pd.read_csv(run / 'tuning/threshold_search' / fit_id / 'thresholds.csv')
+        return rows.assign(Run_ID=run.name, split='validation', fit_id=fit_id)
     path = run / 'evaluation/comparison/logistic_threshold_validation.csv'
     if 'logistic_regression' not in json.loads((path.parent / 'selection.json').read_text())['selected']:
         return pd.DataFrame(columns=['Run_ID', 'split', 'threshold'])
@@ -221,7 +241,8 @@ def write_reports(run, metrics, figures):
         display[column] = display[column].map(lambda value: f"{value:.2%}")
     images = sorted(figures.glob("*/*.png"))
     rel = [path.relative_to(REPORTS).as_posix() for path in images]
-    selection = json.loads((run / 'evaluation/comparison/selection.json').read_text(encoding='utf-8'))
+    selection_path = run / 'tuning/selection.json' if (run / 'tuning/selection.json').exists() else run / 'evaluation/comparison/selection.json'
+    selection = json.loads(selection_path.read_text(encoding='utf-8'))
     note = ("Models and TF-IDF fitted on subtrain; configurations and thresholds selected on validation; "
             "no refit before test. LR threshold comparison uses saved validation results."
             if selection.get('refit') is False else
@@ -249,7 +270,8 @@ def write_reports(run, metrics, figures):
         ax = cover.subplots()
         ax.axis("off")
         ax.set_title(title, fontsize=16)
-        ax.text(.5, .76, note, ha="center", transform=ax.transAxes)
+        from textwrap import fill
+        ax.text(.5, .76, fill(note, width=105), ha="center", va="center", transform=ax.transAxes, fontsize=10)
         table = ax.table(cellText=cells[1:], colLabels=cells[0], cellLoc="center", loc="center",
                          colWidths=[.23, .11, .11, .11, .11, .11, .07, .07])
         table.auto_set_font_size(False)
@@ -294,6 +316,8 @@ def generate(run, *, allow_running=False):
     manifest = json.loads((run / "run.json").read_text(encoding="utf-8"))
     if manifest["status"] != "success" and not (allow_running and manifest["status"] == "running"):
         raise ValueError("Reports require a successful run.")
+    if (run / "models/model_info.json").exists():
+        return generate_structured(run)
     figures = REPORTS / "figures" / run.name
     for stage in ("eda", "preprocessing", "training", "evaluation"):
         (figures / stage).mkdir(parents=True, exist_ok=True)
@@ -335,6 +359,56 @@ def generate(run, *, allow_running=False):
     update_history(REPORTS / "lr_threshold_comparison.csv", thresholds, run.name)
     write_reports(run, metrics, figures)
 
+
+
+def generate_structured(run):
+    """Read schema v2 artifacts directly; never create legacy comparison copies."""
+    figures = REPORTS / 'figures' / run.name
+    for stage in ('eda', 'preprocessing', 'training', 'evaluation'):
+        (figures / stage).mkdir(parents=True, exist_ok=True)
+    info = json.loads((run / 'models/model_info.json').read_text(encoding='utf-8'))
+    selected = [row for row in info['models'] if row['variant']=='tuned']
+    vectorizer_id = selected[0]['vectorizer_id']
+    prep = run / 'preprocessing'
+    feature_dir = prep / 'tfidf' / vectorizer_id
+    X_train = load_npz(feature_dir / 'X_subtrain.npz')
+    X_test = load_npz(feature_dir / 'X_test.npz')
+    y_test = pd.read_csv(feature_dir / 'y_test.csv').label_num.to_numpy()
+    summary = pd.read_csv(run / 'evaluation/comparison/test_summary.csv')
+    metrics = summary.loc[summary.variant.eq('tuned')].copy()
+    from hashlib import sha256
+    manifest = json.loads((run / 'run.json').read_text(encoding='utf-8'))
+    if sha256((DATA_DIR / 'raw/spam_ham_dataset.csv').read_bytes()).hexdigest()!=manifest['dataset_sha256']:
+        raise ValueError('Current dataset differs from the run dataset.')
+    copytree(run / 'figures/eda', figures / 'eda', dirs_exist_ok=True)
+    copy2(run / 'figures/eda/label_distribution.csv', REPORTS / 'label_distribution.csv')
+    save_preprocessing(run,prep,figures / 'preprocessing',X_train)
+    training=[]
+    for entry in selected:
+        record = load_training_record(run, entry['model'], entry['fit_id'])
+        training.append(dict(model=entry['model'], fit_seconds=record['fit_seconds'],
+            **{key:record['parameters'].get(key) for key in ['learning_rate','n_iterations','C','alpha']},
+            threshold=entry['threshold']))
+        learning_plot = run / 'training' / entry['model'] / 'selected_training.png'
+        if not learning_plot.exists():
+            learning_plot = training_directory(run, entry['model'], entry['fit_id']) / 'training.png'
+        for source, name in [(learning_plot, 'learning'),
+            (run / 'tuning/threshold_search' / entry['fit_id'] / 'thresholds.png', 'thresholds')]:
+            if source.exists():
+                copy2(source,figures / 'training' / f"{entry['model']}_{name}.png")
+    training = pd.DataFrame(training)
+    chart(figures / 'training/training_time_comparison.png','Selected fits (with sampled diagnostics)',
+          training.model.map(MODELS).str.upper(),training.fit_seconds,'Seconds')
+    table_figure(figures / 'training/training_configuration.png','Selected configurations',training.drop(columns='fit_seconds'))
+    overview=[]
+    for name in ['subtrain','validation','test']:
+        X=load_npz(feature_dir / f'X_{name}.npz')
+        overview.append(dict(split=name,emails=X.shape[0],features=X.shape[1],nonzero=X.nnz))
+    table_figure(figures / 'training/training_dataset_overview.png','Dataset overview',pd.DataFrame(overview))
+    save_evaluation(run,figures / 'evaluation',metrics,X_test,y_test)
+    update_history(REPORTS / 'metrics_summary.csv',summary.assign(Run_ID=run.name),run.name)
+    update_history(REPORTS / 'lr_threshold_comparison.csv',threshold_comparison(run),run.name)
+    write_reports(run,metrics,figures)
 
 def report_main():
     parser = argparse.ArgumentParser(description=__doc__)
@@ -395,9 +469,12 @@ def save_preprocessing_figures(run_dir, X_train, X_test, y_train, y_test, *,
     ax.legend()
     figure.savefig(figures / "split_distribution.png", dpi=150)
 
+    import yaml
+    config_path = run_dir / 'config.yaml'
+    settings = yaml.safe_load(config_path.read_text(encoding='utf-8')) if config_path.exists() else {}
     details = {
-        "split": {"test_size": 0.2, "random_state": 42, "stratified": True},
-        "tfidf": {"max_features": 50000, "ngram_range": [1, 2], "norm": "l2",
+        "split": {**{"test_size": 0.2, "random_state": 42}, **settings.get('split', {}), "stratified": True},
+        "tfidf": {**{"max_features": 50000, "ngram_range": [1, 2], "norm": "l2"}, **settings.get('features', {}),
                   "fit_split": "subtrain" if X_validation is not None else "train"},
         "sets": {
             name.lower(): {"ham": counts[0], "spam": counts[1], "shape": list(X.shape),
