@@ -1,6 +1,7 @@
 """Regression metrics and per-row predictions."""
 import numpy as np
 import pandas as pd
+from .evaluation_layout import evaluation_path, organize_evaluation
 
 
 def metrics(actual, predicted):
@@ -60,6 +61,7 @@ def evaluate_run(run):
     from .report import generate
 
     with run_stage(run, "evaluation"):
+        organize_evaluation(run / "evaluation")
         summary = json.loads((run / "preprocessing/summary.json").read_text(encoding="utf-8"))
         selection = json.loads((run / "tuning/selection.json").read_text(encoding="utf-8"))
         trials = pd.read_csv(run / "tuning/validation_metrics.csv")
@@ -67,7 +69,7 @@ def evaluate_run(run):
         metadata_path = run / "models/selection.json"
         timings = json.loads(metadata_path.read_text()).get("fit_seconds", {}) if metadata_path.exists() else {}
         # Older completed runs recorded final fit times in their metrics table.
-        metrics_path = run / "evaluation/metrics.csv"
+        metrics_path = evaluation_path(run / "evaluation", "metrics.csv")
         if not timings and metrics_path.exists():
             previous = pd.read_csv(metrics_path).set_index("model")
             timings = previous.fit_seconds.to_dict()
@@ -79,7 +81,7 @@ def evaluate_run(run):
         for name in selection:
             model = joblib.load(run / "models" / f"{name}.joblib")
             predicted = np.maximum(0, model.predict(test[FEATURES]))
-            score = evaluate(test, predicted, run / "evaluation" / f"{name}.csv", **export_columns)
+            score = evaluate(test, predicted, evaluation_path(run / "evaluation", f"{name}.csv"), **export_columns)
             rows.append(dict(model=name, fit_seconds=timings.get(name, 0), **score))
         baselines = [
             ("mean_baseline", np.repeat(development.sales.mean(), len(test))),
@@ -90,18 +92,23 @@ def evaluate_run(run):
             ("product_mean_baseline", test.StockCode.map(development.groupby("StockCode").sales.mean()).to_numpy()),
         ]
         for name, predicted in baselines:
-            score = evaluate(test, predicted, run / "evaluation" / f"{name}.csv", **export_columns)
+            score = evaluate(test, predicted, evaluation_path(run / "evaluation", f"{name}.csv"), **export_columns)
             rows.append(dict(model=name, fit_seconds=0, **score))
-        comparison = pd.read_csv(run / "evaluation" / f"{winner}_{entity}_metrics.csv", dtype={entity: str})
+        comparison = pd.read_csv(evaluation_path(run / "evaluation", f"{winner}_{entity}_metrics.csv"), dtype={entity: str})
         for baseline in ("mean_baseline", "rolling_7_baseline", "rolling_28_baseline", "weekday_4_baseline"):
-            scores = pd.read_csv(run / "evaluation" / f"{baseline}_{entity}_metrics.csv", dtype={entity: str})
+            scores = pd.read_csv(evaluation_path(run / "evaluation", f"{baseline}_{entity}_metrics.csv"), dtype={entity: str})
             comparison = comparison.merge(scores[[entity, "rmse"]].rename(
                 columns={"rmse": baseline + "_rmse"}), on=entity, validate="one_to_one")
             comparison[baseline + "_improvement_pct"] = 100 * (
                 1 - comparison.rmse / comparison[baseline + "_rmse"].replace(0, np.nan))
-        comparison.to_csv(run / "evaluation/product_baseline_comparison.csv", index=False)
+        comparison.to_csv(evaluation_path(run / "evaluation", "product_baseline_comparison.csv"), index=False)
         results = pd.DataFrame(rows)
         results.to_csv(metrics_path, index=False)
+        index = ["# Kết quả đánh giá", "", "| Nhóm | Tệp |", "|---|---|"]
+        for path in sorted((run / "evaluation").rglob("*.csv")):
+            relative = path.relative_to(run / "evaluation").as_posix()
+            index.append(f"| {relative.split('/')[0]} | [{path.name}]({relative}) |")
+        (run / "evaluation/README.md").write_text("\n".join(index) + "\n", encoding="utf-8")
         report = generate(run, results, selection)
         (run / "report.md").write_text(
             report.replace(f"../results/runs/{run.name}/figures/", "figures/"), encoding="utf-8")
@@ -126,7 +133,7 @@ def evaluate_run(run):
 
 def main():
     from .experiment_tracking import stage_main
-    stage_main("Evaluate saved Lab02 models on test without tuning or fitting.", evaluate_run)
+    stage_main("Evaluate saved Lab02 models on test without tuning or fitting.", evaluate_run, use_best_config=True)
 
 
 if __name__ == "__main__":

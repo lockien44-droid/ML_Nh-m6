@@ -12,6 +12,9 @@ Lab01/results_runs/
 Lab02/results/runs/*
 !Lab02/results/runs/2026-11-24_13-01-41/
 !Lab02/results/runs/2026-11-24_17-02-43/
+Lab03/results/*
+!Lab03/results/runs/
+
 Lab03/results/runs/*
 !Lab03/results/runs/2026-11-18_22-05-16/
 
@@ -46,3 +49,11 @@ Lab02/reports/archive/*
 Lab04/Data/cache/
 Lab04/Data/raw/*.csv
 Lab04/results/
+
+# Current Lab03 runs are separated by exercise.
+Lab03/runs/customers/*
+!Lab03/runs/customers/2026-11-25_19-28-48/
+Lab03/runs/image/*
+
+# Temporary notebook exports
+Lab03/notebooks/notebook_exports/

@@ -18,7 +18,7 @@ tiền xử lý, thực nghiệm, đánh giá và tài liệu. Thuật toán t�
 | --- | --- | --- |
 | Lab01 | Phân loại email spam bằng Logistic Regression, Linear SVM, Naive Bayes | [Hướng dẫn và notebook](Lab01/README.md) |
 | Lab02 | Dự báo doanh thu FMCG theo SKU/tuần bằng bốn thuật toán hồi quy | [Hướng dẫn, kết quả và giới hạn](Lab02/README.md) |
-| Lab03 | Phân khúc khách hàng bằng K-Means | [Hướng dẫn, 3D và báo cáo](Lab03/README.md) |
+| Lab03 | Phân cụm khách hàng và phân đoạn ảnh bằng K-Means | [Hướng dẫn, 3D và báo cáo](Lab03/README.md) |
 | Lab04 | Hồi quy giá nhà bằng PyTorch MLP và ba mô hình đối chiếu | [Hướng dẫn chạy và đầu ra](Lab04/README.md) |
 
 ## Cài đặt và chạy

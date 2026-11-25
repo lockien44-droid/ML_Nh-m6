@@ -77,7 +77,8 @@ def run_stage(run, stage):
                            "preprocessing/test.csv"],
         }
         if any(not (run / item).is_file() for item in prerequisites[stage]):
-            raise ValueError(f"Required artifacts are missing before {stage}.")
+            hint = " Run python -m Lab02.src.train first." if stage == "evaluation" else ""
+            raise ValueError(f"Required artifacts are missing before {stage}.{hint}")
         if stage == "tuning" and (run / "tuning/selection.json").exists():
             raise ValueError("Tuning is already complete. Create a new run to change configurations.")
         if stage == "training" and ("training" in manifest.get("completed_stages", [])
@@ -116,13 +117,30 @@ def run_stage(run, stage):
         lock.unlink()
 
 
-def stage_main(description, operation):
+def resolve_best_run():
+    """Use the fixed selection only when it matches the original tuning artifacts."""
+    from .preprocessing import LAB
+    path = LAB / "best_config.json"
+    if not path.is_file():
+        raise ValueError("best_config.json is missing. Run tuning first or provide --run-id.")
+    best = json.loads(path.read_text(encoding="utf-8"))
+    run = resolve_run(best["run_id"])
+    selection = json.loads((run / "tuning/selection.json").read_text(encoding="utf-8"))
+    summary = json.loads((run / "preprocessing/summary.json").read_text(encoding="utf-8"))
+    if selection != best["models"] or summary["dataset_sha256"] != best["dataset_sha256"]:
+        raise ValueError("best_config.json does not match its run. Restore it from tuning artifacts.")
+    return run
+
+
+def stage_main(description, operation, use_best_config=False):
     """Share run selection and clear errors across stage entry points."""
     import argparse
     parser = argparse.ArgumentParser(description=description)
-    parser.add_argument("--run-id", required=True)
+    parser.add_argument("--run-id", required=not use_best_config,
+                        help="Use a specific run; train/evaluate default to best_config.json")
     args = parser.parse_args()
     try:
-        operation(resolve_run(args.run_id))
+        run = resolve_run(args.run_id) if args.run_id else resolve_best_run()
+        operation(run)
     except (ValueError, FileNotFoundError) as error:
         parser.error(str(error))

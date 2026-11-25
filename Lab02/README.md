@@ -23,6 +23,24 @@ Tệp có 190.757 dòng, 30 SKU, từ 21/01/2022 đến 31/12/2024. Giữ các d
 
 Các mốc 60/20/20 được xác định trước khi bỏ 28 tuần đầu thiếu lịch sử. Mô hình chỉ dùng lịch sử trước tuần dự báo cùng thông tin lịch đã biết. Giá, khuyến mãi, tồn kho, giao hàng và số lượng bán của tuần tương lai không được đưa vào đầu vào.
 
+## Cấu hình tốt nhất ở vị trí cố định
+
+Sau tuning thành công, chương trình ghi `Lab02/best_config.json`. Tệp chứa run_id, nguồn/hash dữ liệu, tiêu chí selection_rmse, mô hình demo và feature_set cùng siêu tham số tốt nhất cho từng thuật toán. Việc lựa chọn dựa vào các cửa sổ train và validation.
+
+Các bước sau tự dùng lượt được ghi trong best_config.json:
+
+```powershell
+# Chỉ cần chạy nếu lượt đã tuning chưa huấn luyện cuối
+python -m Lab02.src.train
+
+# Nạp mô hình đã lưu, chấm test và xuất báo cáo
+python -m Lab02.src.evaluate
+```
+
+Có thể thêm --run-id để dùng một lượt cụ thể. Chạy evaluate yêu cầu mô hình của lượt đó đã được lưu. Lượt đã huấn luyện chỉ cần đánh giá hoặc demo. Muốn thử đặc trưng/cấu hình mới, tạo lượt mới rồi tuning, tệp cố định được cập nhật sau khi bước đó thành công.
+
+Tệp cố định hiện được tạo từ tuning của lượt `2026-11-24_17-02-43`. Gradient Boosting dùng trend. Bản lựa chọn gốc của từng lượt vẫn nằm trong tuning/selection.json. Nếu tệp cố định bị sửa lệch với bản gốc hoặc hash dữ liệu, chương trình báo lỗi để tránh trộn kết quả giữa các lượt.
+
 ## Chạy riêng theo nhiệm vụ
 
 Chạy từng bước từ thư mục gốc. Lệnh chuẩn bị tạo run_id mới và in ra `Prepared run`. Dùng đúng mã đó cho các bước sau:
@@ -120,3 +138,43 @@ CSV cần sku,date,Revenue, đủ 28 tuần liên tiếp trước tuần dự b�
 - [Báo cáo lượt tham chiếu](reports/archive/report_2026-11-24_13-01-41.md)
 - [Báo cáo PDF](reports/archive/report_2026-11-24_13-01-41.pdf)
 - [Chỉ số test](results/runs/2026-11-24_13-01-41/evaluation/metrics.csv)
+
+## Biểu đồ tập trung theo lượt
+
+Tất cả biểu đồ EDA, tuning và đánh giá được tạo trong results/runs/<run_id>/figures/. [Mục lục ảnh lượt FMCG](results/runs/2026-11-24_17-02-43/figures/README.md) chia link theo từng phần. Chạy evaluate hoặc report để tạo lại từ dữ liệu đã lưu.
+
+
+## Cấu trúc thư mục figures
+
+```text
+results/runs/<run_id>/figures/
+├── eda/                 Doanh thu theo kỳ, phân bố train, thống kê sản phẩm
+├── preprocessing/       Biểu đồ chia train/validation/test
+├── tuning/              Điểm chọn cấu hình
+├── model_evaluation/    Bốn ảnh Ridge, Decision Tree, Random Forest, Gradient Boosting
+├── baselines/           Các phương án dự đoán đơn giản
+├── comparison/          MAE/RMSE, thời gian huấn luyện và RMSE theo SKU
+└── README.md            Mục lục biểu đồ
+```
+
+Mỗi ảnh thuật toán gồm thực tế/dự đoán và phân bố phần dư. Lệnh report hoặc evaluate tự ghi ảnh vào nhóm tương ứng và cập nhật link. Lượt hiện tại đã được chuyển sang bố cục này.
+
+
+## Cấu trúc thư mục evaluation
+
+```text
+results/runs/<run_id>/evaluation/
+├── model_evaluation/
+│   ├── linear_regression/
+│   ├── decision_tree/
+│   ├── random_forest/
+│   └── gradient_boosting/
+├── baselines/
+│   └── <tên_baseline>/
+├── comparison/
+│   ├── metrics.csv
+│   └── product_baseline_comparison.csv
+└── README.md
+```
+
+Mỗi thư mục thuật toán chứa CSV dự đoán, lỗi lớn nhất, chỉ số theo SKU và weekday. comparison chứa chỉ số tổng hợp và bảng đối chiếu baseline. Lệnh evaluate tự ghi vào các nhóm này. Bộ đọc báo cáo và notebook hỗ trợ cả kết quả cũ dạng phẳng.

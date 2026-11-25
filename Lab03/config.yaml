@@ -1,0 +1,61 @@
+customers:
+  data:
+    path: data/customers/raw/Mall_Customers.csv
+    id_column: CustomerID
+    features:
+    - Age
+    - Annual Income (k$)
+    - Spending Score (1-100)
+  kmeans:
+    k_values:
+    - 2
+    - 3
+    - 4
+    - 5
+    - 6
+    - 7
+    - 8
+    - 9
+    - 10
+    max_iter: 300
+    tol: 0.0001
+    random_state: 42
+    n_init: 20
+    algorithms:
+    - kmeans
+    eps_values:
+    - 0.3
+    - 0.5
+    - 0.7
+    min_samples_values:
+    - 5
+    linkages:
+    - ward
+    min_coverage: 0.8
+  analysis:
+    seeds:
+    - 0
+    - 1
+    - 2
+    - 3
+    - 4
+    - 5
+    - 6
+    - 7
+    - 8
+    - 9
+image:
+  max_size: 192
+  k_values:
+  - 2
+  - 4
+  - 8
+  - 16
+  max_iter: 100
+  tol: 0.0001
+  random_state: 42
+  n_init: 3
+  paths:
+  - data/images/raw/draw_beach.jpg
+  - data/images/raw/photo_flower.jpg
+  colorspace: RGB

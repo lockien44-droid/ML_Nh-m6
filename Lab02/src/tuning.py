@@ -48,6 +48,40 @@ def tune(train, validation, config, output):
     return selected
 
 
+def save_best_config(run):
+    """Publish the validation-selected configurations at one stable location."""
+    import json
+    from uuid import uuid4
+    from .preprocessing import LAB
+    manifest = json.loads((run / "run.json").read_text(encoding="utf-8"))
+    if manifest["status"] not in ("tuned", "trained", "success"):
+        raise ValueError("Publish the best configuration only after successful tuning.")
+    selection = json.loads((run / "tuning/selection.json").read_text(encoding="utf-8"))
+    summary = json.loads((run / "preprocessing/summary.json").read_text(encoding="utf-8"))
+    trials = pd.read_csv(run / "tuning/validation_metrics.csv")
+    best = trials.sort_values("selection_rmse", kind="stable").drop_duplicates("model")
+    config = {
+        "run_id": run.name,
+        "winner": best.iloc[0]["model"],
+        "criterion": "mean_rmse_three_expanding_folds_and_validation",
+        "dataset_sha256": summary["dataset_sha256"],
+        "source": summary["source"],
+        "frequency": summary["frequency"],
+        "target": summary["target"],
+        "models": selection,
+        "selection_rmse": dict(zip(best.model, best.selection_rmse)),
+    }
+    destination = LAB / "best_config.json"
+    temporary = LAB / f".best_config_{uuid4().hex}.tmp"
+    try:
+        temporary.write_text(json.dumps(config, indent=2, ensure_ascii=False), encoding="utf-8")
+        temporary.replace(destination)
+    finally:
+        temporary.unlink(missing_ok=True)
+    print("Best configuration:", destination, flush=True)
+    return config
+
+
 def tune_run(run):
     """Select configurations without reading the test split."""
     import json
@@ -58,6 +92,7 @@ def tune_run(run):
         selected = tune(load_split(run, "train"), load_split(run, "validation"),
                         config, run / "tuning")
         (run / "tuning/selection.json").write_text(json.dumps(selected, indent=2), encoding="utf-8")
+    save_best_config(run)
     print("Tuned run:", run.name, flush=True)
 
 

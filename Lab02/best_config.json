@@ -1,0 +1,40 @@
+{
+  "run_id": "2026-11-24_17-02-43",
+  "winner": "gradient_boosting",
+  "criterion": "mean_rmse_three_expanding_folds_and_validation",
+  "dataset_sha256": "ec91eb23b62ec9836d0923f27cadb7d1d57c4185e111144a1e54feb569c4e61d",
+  "source": "data/raw/FMCG_2022_2024.csv",
+  "frequency": "weekly",
+  "target": "Revenue per sku/week",
+  "models": {
+    "decision_tree": {
+      "feature_set": "trend",
+      "max_depth": 10,
+      "min_samples_leaf": 20
+    },
+    "gradient_boosting": {
+      "feature_set": "trend",
+      "learning_rate": 0.05,
+      "max_depth": 2,
+      "n_estimators": 100
+    },
+    "linear_regression": {
+      "alpha": 10.0,
+      "feature_set": "robust",
+      "learning_rate": 0.1,
+      "n_iterations": 3000
+    },
+    "random_forest": {
+      "feature_set": "robust",
+      "max_depth": 14,
+      "min_samples_leaf": 10,
+      "n_estimators": 80
+    }
+  },
+  "selection_rmse": {
+    "gradient_boosting": 860.6395691045907,
+    "random_forest": 910.9382356341036,
+    "linear_regression": 940.3773848490752,
+    "decision_tree": 945.7930462601596
+  }
+}

@@ -10,16 +10,68 @@ from html import escape
 from pathlib import Path
 from shutil import copy2
 from .preprocessing import LAB
+from .evaluation_layout import evaluation_input, evaluation_relative, organize_evaluation
+from .figure_layout import figure_path, figure_relative, organize_figures
 
+
+
+
+def generate_analysis_figures(run, weekly):
+    """Generate all overview charts from saved artifacts without fitting."""
+    figures = run / "figures"
+    figures.mkdir(exist_ok=True)
+    frames = {name: pd.read_csv(run / "preprocessing" / f"{name}.csv").rename(
+        columns={"sku": "StockCode", "Revenue": "sales"})
+        for name in ("train", "validation", "test")}
+    from .eda import analyze
+    analyze(pd.concat(frames.values()), figures, {"frequency": "weekly" if weekly else "daily"})
+    fig, ax = plt.subplots(figsize=(11, 3))
+    for (name, frame), color in zip(frames.items(), ("tab:blue", "tab:orange", "tab:green")):
+        start = pd.Timestamp(frame.date.min())
+        end = pd.Timestamp(frame.date.max()) + pd.Timedelta(days=6 if weekly else 0)
+        ax.barh(name, (end - start).days + 1, left=start, color=color)
+    ax.xaxis_date()
+    ax.set(title="Chronological data split", xlabel="Date")
+    fig.tight_layout()
+    fig.savefig(figure_path(figures, "chronological_split.png"))
+    plt.close(fig)
+    fig, ax = plt.subplots(figsize=(9, 4))
+    ax.hist(frames["train"].sales, bins=40, edgecolor="white")
+    ax.set(title="Training target distribution", xlabel="Revenue" if weekly else "Units", ylabel="Rows")
+    fig.tight_layout()
+    fig.savefig(figure_path(figures, "eda_sales_distribution.png"))
+    plt.close(fig)
+    trials = pd.read_csv(run / "tuning/validation_metrics.csv")
+    best = trials.sort_values("selection_rmse", kind="stable").drop_duplicates("model")
+    fig, ax = plt.subplots(figsize=(9, 4))
+    ax.barh(best.model, best.selection_rmse)
+    ax.set(title="Configuration selection", xlabel="Mean development RMSE")
+    fig.tight_layout()
+    fig.savefig(figure_path(figures, "tuning_selection.png"))
+    plt.close(fig)
+    comparison_path = evaluation_input(run, "product_baseline_comparison.csv")
+    if comparison_path.exists():
+        comparison = pd.read_csv(comparison_path).rename(columns={"StockCode": "sku"})
+        fig, ax = plt.subplots(figsize=(11, 5))
+        labels = {"rmse": f"{best.iloc[0]['model'].replace('_', ' ').title()} RMSE",
+                  "mean_baseline_rmse": "Mean baseline RMSE"}
+        comparison.set_index("sku")[["rmse", "mean_baseline_rmse"]].rename(columns=labels).plot.bar(ax=ax, rot=65)
+        ax.set(title=f"{best.iloc[0]['model']} and mean baseline by product", ylabel="RMSE")
+        fig.tight_layout()
+        fig.savefig(figure_path(figures, "product_rmse_comparison.png"))
+        plt.close(fig)
 
 
 def generate(run, results, selection):
+    organize_evaluation(run / "evaluation")
     summary = json.loads((run / "preprocessing/summary.json").read_text(encoding="utf-8"))
     weekly = summary.get("frequency") == "weekly"
     fmcg = summary.get("revenue_definition", "").startswith("price_unit")
     unit = "Revenue" if fmcg else "Sales revenue" if weekly else "Units"
+    organize_figures(run / "figures")
+    generate_analysis_figures(run, weekly)
     for name in results.model:
-        data = pd.read_csv(run / "evaluation" / f"{name}.csv").rename(columns={"sku": "StockCode", "Revenue": "sales"})
+        data = pd.read_csv(evaluation_input(run, f"{name}.csv")).rename(columns={"sku": "StockCode", "Revenue": "sales"})
         fig, axes = plt.subplots(1, 2, figsize=(11, 4))
         axes[0].scatter(data.sales, data.predicted, alpha=0.25, s=8)
         limit = max(data.sales.max(), data.predicted.max())
@@ -28,13 +80,17 @@ def generate(run, results, selection):
         axes[1].hist(data.residual, bins=40)
         axes[1].set(xlabel="Actual - predicted", ylabel="Count", title="Residual distribution")
         fig.tight_layout()
-        fig.savefig(run / "figures" / f"{name}.png")
+        fig.savefig(figure_path(run / "figures", f"{name}.png"))
         plt.close(fig)
     fig, axes = plt.subplots(1, 2, figsize=(11, 4))
     results.plot.bar(x="model", y=["mae", "rmse"], ax=axes[0], rot=35)
     results.plot.bar(x="model", y="fit_seconds", ax=axes[1], rot=35)
+    axes[0].legend(["MAE", "RMSE"])
+    axes[0].set(title="Test prediction errors", ylabel="Revenue error (source currency)" if weekly else "Units error")
+    axes[1].legend(["Fit time"])
+    axes[1].set(title="Final model training time", ylabel="Seconds")
     fig.tight_layout()
-    fig.savefig(run / "figures/metrics_comparison.png")
+    fig.savefig(figure_path(run / "figures", "metrics_comparison.png"))
     plt.close(fig)
     headers = results.columns.tolist()
     table = ["| " + " | ".join(headers) + " |",
@@ -53,19 +109,19 @@ def generate(run, results, selection):
              "RMSE là căn MSE, cùng đơn vị số lượng. R² so sánh sai số với dự đoán trung bình của tập đánh giá.",
              "", "## Biểu đồ", ""]
     for name in results.model:
-        lines.extend([f"![{name}](../results/runs/{run.name}/figures/{name}.png)", ""])
+        lines.extend([f"![{name}](../results/runs/{run.name}/figures/{figure_relative(f'{name}.png').as_posix()})", ""])
     lines.extend(["", "## Phân tích sai số", "",
                   "Các bảng *_largest_errors.csv lưu 10 lỗi lớn nhất. Các bảng *_StockCode_metrics.csv và *_weekday_metrics.csv phân tích theo sản phẩm và ngày trong tuần.",
                   "Residual dương là dự báo thiếu, residual âm là dự báo dư.",
-                  f"![So sánh](../results/runs/{run.name}/figures/metrics_comparison.png)"])
+                  f"![So sánh](../results/runs/{run.name}/figures/comparison/metrics_comparison.png)"])
     trials = pd.read_csv(run / "tuning/validation_metrics.csv")
     winner = trials.loc[trials.selection_rmse.idxmin(), "model"]
     chosen = results.set_index("model").loc[winner]
     baseline = results.set_index("model").loc["mean_baseline"]
     improvement = 100 * (1 - chosen.rmse / baseline.rmse)
     rolling = results.set_index("model").loc["rolling_28_baseline"] if "rolling_28_baseline" in set(results.model) else None
-    product_scores = pd.read_csv(run / "evaluation/product_baseline_comparison.csv") if (run / "evaluation/product_baseline_comparison.csv").exists() else pd.DataFrame()
-    errors = pd.read_csv(run / "evaluation" / f"{winner}_largest_errors.csv").rename(columns={"sku": "StockCode", "Revenue": "sales"})
+    product_scores = pd.read_csv(evaluation_input(run, "product_baseline_comparison.csv")) if (evaluation_input(run, "product_baseline_comparison.csv")).exists() else pd.DataFrame()
+    errors = pd.read_csv(evaluation_input(run, f"{winner}_largest_errors.csv")).rename(columns={"sku": "StockCode", "Revenue": "sales"})
     lines.extend(["", "## Kết luận và giới hạn", "",
                   f"Mô hình được chọn bằng dữ liệu phát triển là **{winner}**. RMSE test {chosen.rmse:.4f}, R² {chosen.r2:.4f}. Mức giảm RMSE so với baseline trung bình là {improvement:.2f}%.",
                   f"R² test của mô hình được chọn là {chosen.r2:.4f}. Kết quả phản ánh một lần chia theo thời gian. Không dùng bảng test để chọn lại cấu hình.",
@@ -79,11 +135,11 @@ def generate(run, results, selection):
         lines.append(f"| {error.StockCode} | {error.date} | {error.sales:.2f} | {error.predicted:.2f} | {error.absolute_error:.2f} |")
     if not product_scores.empty:
         wins = int((product_scores.mean_baseline_improvement_pct > 0).sum())
-        lines.extend(["", f"Mô hình cải thiện RMSE so với baseline trung bình trên {wins}/{len(product_scores)} sản phẩm. Xem evaluation/product_baseline_comparison.csv để đối chiếu từng sản phẩm với các baseline lịch sử."])
+        lines.extend(["", f"Mô hình cải thiện RMSE so với baseline trung bình trên {wins}/{len(product_scores)} sản phẩm. Xem evaluation/comparison/product_baseline_comparison.csv để đối chiếu từng sản phẩm với các baseline lịch sử."])
     if rolling is not None:
         lines.extend(["", f"Baseline trung bình 28 ngày đạt RMSE {rolling.rmse:.4f}, trong khi mô hình được chọn đạt {chosen.rmse:.4f}. Mức giảm RMSE so với baseline này là {100 * (1 - chosen.rmse / rolling.rmse):.2f}%."])
-    if (run / "evaluation/before_after.csv").exists():
-        lines.extend(["", "So sánh trước/sau được lưu trong evaluation/before_after.csv. Đây là đối chiếu mô tả trên cùng test, không phải bằng chứng cải thiện trên một tập test mới độc lập."])
+    if (evaluation_input(run, "before_after.csv")).exists():
+        lines.extend(["", "So sánh trước/sau được lưu trong evaluation/comparison/before_after.csv. Đây là đối chiếu mô tả trên cùng test, không phải bằng chứng cải thiện trên một tập test mới độc lập."])
     if weekly:
         lines.extend(["", "## Định nghĩa mục tiêu và dữ liệu", "", f"Đơn vị {summary.get('unit', 'source currency')}. Công thức {summary.get('revenue_definition', 'source Sales')}. Số dòng nguồn {summary['raw_rows']}, số dòng hợp lệ {summary['clean_transaction_rows']}, loại {summary.get('invalid_rows_removed', 0)} dòng không hợp lệ sau loại trùng."])
         lines = [line.replace("số lượng bán dương", "doanh thu Sales")
@@ -130,6 +186,22 @@ def generate(run, results, selection):
                   "Thứ hạng test được dùng để mô tả kết quả, không dùng để thay đổi mô hình đã chọn."]
         context = ("Revenue = price_unit × units_sold, cộng theo sku × tuần qua channel, region và pack_type. "
                    "Tuần bắt đầu thứ Hai. " + context)
+
+    index = [f"# Biểu đồ Lab02 — {run.name}", "", "| Phần | Biểu đồ |", "|---|---|"]
+    lines += ["", "## Biểu đồ khảo sát và lựa chọn", ""]
+    for name, label in (("daily_sales", "Doanh thu theo tuần" if weekly else "Số lượng theo ngày"),
+                        ("eda_sales_distribution", "Phân bố mục tiêu train"),
+                        ("chronological_split", "Chia train/validation/test"),
+                        ("tuning_selection", "Điểm chọn cấu hình"),
+                        ("metrics_comparison", "MAE, RMSE và thời gian huấn luyện"),
+                        ("product_rmse_comparison", "RMSE theo sản phẩm")):
+        if (figure_path(run / "figures", f"{name}.png")).exists():
+            index.append(f"| {label} | [{name}.png]({figure_relative(f'{name}.png').as_posix()}) |")
+            if name != "metrics_comparison":
+                lines += [f"![{label}](../results/runs/{run.name}/figures/{figure_relative(f'{name}.png').as_posix()})", ""]
+    for name in results.model:
+        index.append(f"| Thực tế/dự đoán và phân bố phần dư — {name} | [{name}.png]({figure_relative(f'{name}.png').as_posix()}) |")
+    (run / "figures/README.md").write_text("\n".join(index) + "\n", encoding="utf-8")
     markdown = "\n".join(lines)
     publish_reports(run, results, selection, markdown, context)
     return markdown
@@ -162,15 +234,15 @@ def publish_reports(run, results, selection, markdown, context=""):
     reports.mkdir(exist_ok=True)
     stem = "report_" + run.name
     figure_root = reports / "figures" / run.name
-    categories = {"daily_sales": "eda", "metrics_comparison": "training"}
+    organize_figures(figure_root)
     images = []
-    for path in sorted((run / "figures").glob("*.png")):
-        stage = categories.get(path.stem, "evaluation")
-        destination = figure_root / stage / path.name
+    for path in sorted((run / "figures").rglob("*.png")):
+        relative = path.relative_to(run / "figures")
+        destination = figure_root / relative
         destination.parent.mkdir(parents=True, exist_ok=True)
         copy2(path, destination)
         images.append(destination)
-        markdown = markdown.replace(f"../results/runs/{run.name}/figures/{path.name}",
+        markdown = markdown.replace(f"../results/runs/{run.name}/figures/{relative.as_posix()}",
                                     destination.relative_to(reports).as_posix())
     markdown += "\n\n## Cấu hình được chọn\n\n"
     for name, parameters in selection.items():
@@ -188,7 +260,7 @@ def publish_reports(run, results, selection, markdown, context=""):
     paragraphs = [re.sub(r"\*\*(.*?)\*\*", r"\1", line) for line in analysis.splitlines()
                   if line.strip() and not line.startswith(("|", "##", "!"))]
     winner = pd.read_csv(run / "tuning/validation_metrics.csv").sort_values("selection_rmse", kind="stable").iloc[0]["model"]
-    errors = pd.read_csv(run / "evaluation" / f"{winner}_largest_errors.csv").rename(columns={"sku": "StockCode", "Revenue": "sales"}).head(5)
+    errors = pd.read_csv(evaluation_input(run, f"{winner}_largest_errors.csv")).rename(columns={"sku": "StockCode", "Revenue": "sales"}).head(5)
     error_columns = ["StockCode", "date", "sales", "predicted", "absolute_error"]
     if summary.get("revenue_definition", "").startswith("price_unit"):
         errors = errors.rename(columns={"StockCode": "sku", "sales": "Revenue"})
@@ -291,7 +363,7 @@ def main():
         parser.error("Unknown run ID.")
     if json.loads((run / "run.json").read_text())["status"] != "success":
         parser.error("Reports require a completed successful run.")
-    results = pd.read_csv(run / "evaluation/metrics.csv")
+    results = pd.read_csv(evaluation_input(run, "metrics.csv"))
     selection_path = run / "tuning/selection.json"
     selection = json.loads(selection_path.read_text())
     markdown = generate(run, results, selection)

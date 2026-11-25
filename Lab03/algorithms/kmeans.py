@@ -19,9 +19,14 @@ class KMeans:
         return np.sum((X[:, None, :] - centers[None, :, :]) ** 2, axis=2)
 
     def _initialize(self, X, rng):
+        # Chọn ngẫu nhiên tâm đầu tiên
         centers = [X[rng.integers(len(X))].copy()]
+
         while len(centers) < self.n_clusters:
+            # Khoảng cách bình phương đến tâm gần nhất
             nearest = self._distances(X, np.asarray(centers)).min(axis=1)
+
+            # Điểm xa có xác suất được chọn cao hơn
             index = rng.choice(len(X), p=nearest / nearest.sum())
             centers.append(X[index].copy())
         return np.asarray(centers)

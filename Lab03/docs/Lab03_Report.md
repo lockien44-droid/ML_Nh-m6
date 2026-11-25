@@ -2,33 +2,70 @@
 
 ## 1. Mục tiêu và dữ liệu
 
-Phân khúc mô tả toàn bộ 200 khách trong Mall_Customers.csv theo tuổi, thu nhập năm (nghìn USD) và điểm chi tiêu. CustomerID chỉ truy nguyên, Gender dùng mô tả sau phân cụm.
+### Mục tiêu bài toán
+
+Phân cụm khách hàng của một cửa hàng bán lẻ dựa trên sự tương đồng giữa các khách hàng, từ đó xác định các phân khúc khách hàng có đặc điểm khác biệt.
+
+### Dữ liệu và vai trò các thuộc tính
+
+Dữ liệu `Mall_Customers.csv` gồm 200 khách hàng với tuổi, giới tính, thu nhập hằng năm và điểm chi tiêu.
+
+| Thuộc tính | Vai trò trong triển khai |
+|---|---|
+| `Age` | Đặc trưng phân cụm: tuổi |
+| `Annual Income (k$)` | Đặc trưng phân cụm: thu nhập hằng năm, nghìn USD |
+| `Spending Score (1-100)` | Đặc trưng phân cụm: điểm chi tiêu |
+| `Gender` | Khảo sát dữ liệu và mô tả cơ cấu giới tính từng cụm |
+| `CustomerID` | Đối chiếu khách hàng với nhãn cụm |
+
 
 ## 2. Khảo sát dữ liệu
 
-Không có giá trị thiếu hoặc ID trùng. EDA ghi histogram, boxplot, scatter các cặp đặc trưng và cờ ngoại lệ 1,5 IQR. Quy tắc 1,5 × IQR đánh dấu 2 khách ở cột thu nhập, 0 ở tuổi và 0 ở điểm chi tiêu. Thu nhập có trung vị 61,5 nghìn USD/năm và cao nhất 137 nghìn USD/năm. Các giá trị thu nhập cao vẫn nằm trong phạm vi dữ liệu hợp lệ, nên giữ đủ 200 khách để phân cụm.
+Dữ liệu gồm 200 khách hàng: 112 nữ và 88 nam. Không có dữ liệu thiếu hoặc ID trùng. EDA được tổ chức thành chín biểu đồ, thống kê CSV nằm riêng trong `images/eda/tables/`.
 
-![Phân bố và ngoại lệ của ba đặc trưng](images/eda_overview.png)
+![Tỷ lệ nam và nữ](images/eda/eda_gender_distribution.png)
 
-*Hình 1. Histogram cho biết phân bố từng đặc trưng, boxplot đánh dấu các giá trị xa phần lớn mẫu theo IQR.*
+![Phân bố tuổi theo giới tính](images/eda/eda_age_by_gender.png)
 
-![Scatter các cặp đặc trưng](images/eda_feature_pairs.png)
+![Phân bố và boxplot thu nhập](images/eda/eda_income_by_gender.png)
 
-*Hình 2. Các cặp đặc trưng trước phân cụm giúp quan sát xu hướng và các vùng khách tập trung.*
+![Phân bố và boxplot chi tiêu](images/eda/eda_spending_by_gender.png)
 
-![Tương quan các đặc trưng](images/eda_correlations.png)
+![Thu nhập trung bình theo nhóm tuổi và giới tính](images/eda/eda_income_by_age_gender.png)
 
-*Hình 3. Tương quan Pearson giữa các đặc trưng. Giá trị gần 0 chỉ nói quan hệ tuyến tính yếu, chưa loại trừ quan hệ khác.*
+![Quan hệ giữa ba cặp đặc trưng theo giới tính](images/eda/eda_feature_pairs_by_gender.png)
+
+![Tương quan Pearson](images/eda/eda_correlations.png)
+
+Histogram dùng chung khoảng chia và thang đo giữa nam/nữ; số lượng tuyệt đối chịu ảnh hưởng bởi quy mô nhóm. Boxplot cho biết trung vị, độ phân tán và ngoại lệ. Thu nhập theo nhóm tuổi là trung bình mô tả, cần xem số khách mỗi nhóm trong CSV. Màu scatter biểu diễn giới tính, không phải nhãn cụm. Heatmap chỉ đo quan hệ tuyến tính, không chứng minh nhân quả. Gender hiện dùng mô tả dữ liệu, chưa tham gia tính khoảng cách K-Means.
+
+### Quan hệ giữa các biến theo tài liệu tham khảo
+
+![Tuổi và chi tiêu kèm phân bố hai trục](images/eda/eda_age_spending_joint.png)
+
+Biểu đồ ghép scatter, đường hồi quy tuyến tính mô tả và histogram biên. Hệ số Pearson được tính trên các cặp quan sát hợp lệ. Đường xu hướng không phải mô hình dự đoán đã được đánh giá; hình dùng histogram biên, không dùng lớp KDE như bản tham khảo.
+
+![Tuổi và thu nhập theo giới tính](images/eda/eda_age_income_regression.png)
+
+Mỗi nhóm có một đường xu hướng và hệ số Pearson riêng, tính lại từ CSV hiện tại. Không diễn giải tương quan thành quan hệ nhân quả.
+
+Để sinh lại toàn bộ hình EDA và bảng thống kê mà không huấn luyện:
+
+```powershell
+python -m Lab03.src.part1_customers.eda
+```
+
+Hình lưu trong `docs/images/eda/`, CSV lưu trong `docs/images/eda/tables/`. Pipeline Part 1 gọi cùng hàm `analyze` để xuất bộ hình này vào `runs/customers/<run_id>/figures/eda/`.
 
 ## 3. Phạm vi và chuẩn hóa
 
 Kiểm tra tuổi trong 1–100, thu nhập dương và điểm trong 1–100. Cả 200 dòng hợp lệ, không cần lọc bỏ. Chuẩn hóa z-score với ddof=0 trên toàn bộ mẫu để phân cụm mô tả. Đây là đánh giá nội bộ, không phải dự báo train/test.
 
-![So sánh trước và sau chuẩn hóa](images/feature_scaling.png)
+![So sánh trước và sau chuẩn hóa](images/preprocessing/feature_scaling.png)
 
 *Hình 4. Z-score đưa ba đặc trưng về thang đo tương đương, tránh thu nhập hoặc tuổi chi phối khoảng cách chỉ vì đơn vị đo.*
 
-## 4. K-Means tự cài
+## 4. K-Means
 
 K-means++ khởi tạo, mỗi vòng gán khách gần tâm rồi cập nhật tâm trung bình. Cụm rỗng đặt lại ở điểm xa nhất. Dừng theo độ dịch chuyển tâm tol=0,0001 hoặc max_iter=300. Mỗi K chạy n_init=20, giữ nghiệm inertia thấp nhất. Silhouette tự cài theo khoảng cách Euclid trên z-score.
 
@@ -50,7 +87,7 @@ K=6 đạt 0,4274, K=5 đạt 0,4166, K=9 đạt 0,4208. Chênh lệch nhỏ nê
 
 Bảng k_selection/k5_vs_selected.csv minh họa điều K=6 bổ sung. Trong 54 khách thuộc cụm 0 khi K=5, nghiệm K=6 đưa 29 khách vào nhóm trẻ có thu nhập và chi tiêu trung bình, 24 khách vào nhóm thu nhập dưới trung bình có chi tiêu cao và 1 khách vào nhóm thu nhập dưới trung bình có chi tiêu thấp. Như vậy, K=6 tách rõ hơn hai xu hướng chi tiêu trong nhóm trước đó bị gộp, bên cạnh mức tăng Silhouette từ 0,4166 lên 0,4274.
 
-![Silhouette và Elbow theo K](images/silhouette_by_k.png)
+![Silhouette và Elbow theo K](images/tuning/silhouette_by_k.png)
 
 *Hình 5. Silhouette đạt cao nhất ở K=6 trong lần chạy tham chiếu. Inertia giảm chậm hơn sau vùng K=4–6.*
 
@@ -71,17 +108,17 @@ Tên thu nhập trên/dưới trung bình mẫu là tương đối, tính theo t
 
 Biểu đồ Income × Spending và Plotly 3D dùng đơn vị gốc, thu nhập nghìn USD. Legend có tên nhóm và tâm cụm. Khoảng cách mô hình dùng z-score. Biểu đồ Silhouette từng cụm chỉ ra khách sát ranh giới. Scatter 2D có thể chồng lấn vì chưa hiển thị tuổi.
 
-![Thu nhập và điểm chi tiêu theo cụm](images/income_spending.png)
+![Thu nhập và điểm chi tiêu theo cụm](images/evaluation/income_spending.png)
 
 *Hình 6. Màu thể hiện phân khúc, dấu X là tâm chiếu lên hai trục. Hai nhóm khác tuổi có thể chồng lấn trên hình này.*
 
-![Phân cụm 3D theo tuổi, thu nhập và chi tiêu](images/customer_clusters_3d.png)
+![Phân cụm 3D theo tuổi, thu nhập và chi tiêu](images/evaluation/customer_clusters_3d.png)
 
 *Hình 7. Thêm trục tuổi giúp đọc các nhóm chồng lấn trên biểu đồ hai chiều.*
 
-[Biểu đồ 3D có thể xoay và thu phóng](../results/runs/2026-11-18_22-05-16/figures/customer_clusters_3d.html)
+[Biểu đồ 3D có thể xoay và thu phóng](../runs/customers/2026-11-25_19-28-48/figures/customer_clusters_3d.html)
 
-![Silhouette của từng khách theo cụm](images/silhouette_clusters.png)
+![Silhouette của từng khách theo cụm](images/evaluation/silhouette_clusters.png)
 
 *Hình 8. Mỗi nhóm thanh tương ứng một cụm. Đường đỏ là Silhouette trung bình, giá trị âm chỉ khách gần cụm khác hơn theo tiêu chí khoảng cách trung bình.*
 
@@ -102,7 +139,7 @@ Biểu đồ Income × Spending và Plotly 3D dùng đơn vị gốc, thu nhập
 
 9/10 seed chọn K=6, seed 8 chọn K=8. ARI cố định K=6 so với seed 42 khoảng 0,977–1,0. Kết luận chỉ áp dụng việc thay seed trên cùng 200 khách.
 
-![Kiểm tra ổn định theo seed](images/seed_stability.png)
+![Kiểm tra ổn định theo seed](images/evaluation/seed_stability.png)
 
 *Hình 9. Bên trái là K được chọn khi đổi seed, bên phải là ARI khi giữ K=6 và so với seed 42.*
 
@@ -119,7 +156,7 @@ Biểu đồ Income × Spending và Plotly 3D dùng đơn vị gốc, thu nhập
 
 Gender chưa tham gia khoảng cách vì mục tiêu tuổi, thu nhập và chi tiêu. Tỷ lệ theo cụm là mô tả, chưa là tác động nhân quả. Cụm 4 và 5 chỉ có 21 và 24 khách, nên thêm hoặc bớt một vài khách có thể làm tỷ lệ Female/Male thay đổi đáng kể. Cần thận trọng khi diễn giải tỷ lệ ở các cụm nhỏ.
 
-![Phân bố Gender theo cụm](images/gender_by_cluster.png)
+![Phân bố Gender theo cụm](images/evaluation/gender_by_cluster.png)
 
 *Hình 10. Số khách Female/Male trong từng cụm. Đọc số lượng cùng kích thước cụm, đặc biệt với cụm 4 và 5.*
 
@@ -133,4 +170,6 @@ Kết quả nhiều seed đánh giá sự ổn định khởi tạo trên cùng 
 
 Lần chạy tham chiếu 2026-11-18_22-05-16. YAML và hash nguồn giúp xác định cấu hình và dữ liệu. Chạy python -m Lab03.src.pipeline để tạo một lần chạy mới. Notebook trình bày từng bước và bảng kết quả.
 
-Bài bổ sung phân đoạn ảnh chưa thực hiện trong báo cáo này.
+Bài bổ sung đã được triển khai trong src/part2_image. Xem [hướng dẫn phân đoạn ảnh](Image_Segmentation_Report.md).
+
+[Tài liệu Part 1 theo 5 bước K-Means](Part1_KMeans_5_steps.md).

@@ -61,3 +61,7 @@ CSV dữ liệu tiền xử lý và đánh giá FMCG dùng sku,date,Revenue. N�
 Cần 28 tuần liên tiếp trước tuần dự báo, ghi rõ Revenue=0 cho tuần trống. Có thể truyền JSON với sku,date và các lag/mean. Bộ robust cần đầy đủ các thống kê HISTORY, nên ưu tiên --history.
 
 [Hướng dẫn chạy](../README.md) · [Báo cáo chi tiết](Lab02_Report.md)
+
+## Tệp lựa chọn cố định
+
+best_config.json ở gốc Lab02 được ghi sau tuning thành công. Trường models chứa feature_set và siêu tham số của từng thuật toán, winner là mô hình được chọn bằng selection_rmse, run_id xác định dữ liệu và mô hình tương ứng. train và evaluate dùng tệp này làm mặc định. Tùy chọn --run-id cho phép chỉ định một lượt khác.

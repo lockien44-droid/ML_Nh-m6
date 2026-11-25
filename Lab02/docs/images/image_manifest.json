@@ -36,16 +36,18 @@
       "sha256": "9b2a105758a68ab726fb67733ec7d9af03cb6d2ab8171efab3fffc39a09c3068"
     },
     "metrics_comparison.png": {
-      "source": "results/runs/2026-11-24_13-01-41/figures/metrics_comparison.png",
-      "sha256": "fcc47f181666a4a3f443de1bd4d7c36716f68062710d32838672cdb5b9be3dd7"
+      "run_id": "2026-11-24_17-02-43",
+      "source": "results/runs/2026-11-24_17-02-43/figures/comparison/metrics_comparison.png",
+      "sha256": "14e12c7c8addc40cce75b77584846d469ea466381a159bffe22824a6a7de83dc"
     },
     "product_mean_baseline.png": {
       "source": "results/runs/2026-11-24_13-01-41/figures/product_mean_baseline.png",
       "sha256": "2ea3b8ab670aca14a59d439efe2c15249f7b5cb2732a2cd57c451496e9eb02e8"
     },
     "product_rmse_comparison.png": {
-      "source": "derived from reference run CSVs",
-      "sha256": "b220578c2ea8fe6945f92ae1a7e43a2f8233da9e397213b89f0a41d1fa9d3406"
+      "run_id": "2026-11-24_17-02-43",
+      "source": "results/runs/2026-11-24_17-02-43/figures/comparison/product_rmse_comparison.png",
+      "sha256": "92c8084abf488dcee53dce9ec238c46ae4239dfad6cf0ac2264b2ccc632d14c1"
     },
     "random_forest.png": {
       "source": "results/runs/2026-11-24_13-01-41/figures/random_forest.png",

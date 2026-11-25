@@ -74,7 +74,7 @@ def main():
     from .experiment_tracking import stage_main
     # Import the canonical module when invoked with -m so pickles never refer to __main__.
     from .train import train_run as operation
-    stage_main("Fit final Lab02 models using the selected configurations.", operation)
+    stage_main("Fit final Lab02 models using the selected configurations.", operation, use_best_config=True)
 
 
 if __name__ == "__main__":

@@ -35,32 +35,32 @@ MAE là sai số tuyệt đối trung bình. MSE là sai số bình phương tru
 
 ## Biểu đồ
 
-![decision_tree](figures/decision_tree.png)
+![decision_tree](figures/model_evaluation/decision_tree.png)
 
-![gradient_boosting](figures/gradient_boosting.png)
+![gradient_boosting](figures/model_evaluation/gradient_boosting.png)
 
-![linear_regression](figures/linear_regression.png)
+![linear_regression](figures/model_evaluation/linear_regression.png)
 
-![random_forest](figures/random_forest.png)
+![random_forest](figures/model_evaluation/random_forest.png)
 
-![mean_baseline](figures/mean_baseline.png)
+![mean_baseline](figures/baselines/mean_baseline.png)
 
-![last_week_baseline](figures/last_week_baseline.png)
+![last_week_baseline](figures/baselines/last_week_baseline.png)
 
-![rolling_7_baseline](figures/rolling_7_baseline.png)
+![rolling_7_baseline](figures/baselines/rolling_7_baseline.png)
 
-![rolling_28_baseline](figures/rolling_28_baseline.png)
+![rolling_28_baseline](figures/baselines/rolling_28_baseline.png)
 
-![weekday_4_baseline](figures/weekday_4_baseline.png)
+![weekday_4_baseline](figures/baselines/weekday_4_baseline.png)
 
-![product_mean_baseline](figures/product_mean_baseline.png)
+![product_mean_baseline](figures/baselines/product_mean_baseline.png)
 
 
 ## Phân tích sai số
 
 Các bảng *_largest_errors.csv lưu 10 lỗi lớn nhất. Các bảng *_sku_metrics.csv và *_weekday_metrics.csv phân tích theo sản phẩm và ngày trong tuần.
 Residual dương là dự báo thiếu, residual âm là dự báo dư.
-![So sánh](figures/metrics_comparison.png)
+![So sánh](figures/comparison/metrics_comparison.png)
 
 ## Kết luận và giới hạn
 
@@ -80,7 +80,7 @@ Các đặc trưng robust gồm trung vị, độ lệch chuẩn 7/28 tuần, s�
 | YO-029 | 2024-07-01 | 5640.78 | 7504.22 | 1863.44 |
 | MI-006 | 2024-07-29 | 3634.04 | 5379.80 | 1745.76 |
 
-Mô hình cải thiện RMSE so với baseline trung bình trên 20/20 sản phẩm. Xem evaluation/product_baseline_comparison.csv để đối chiếu từng sản phẩm với các baseline lịch sử.
+Mô hình cải thiện RMSE so với baseline trung bình trên 20/20 sản phẩm. Xem evaluation/comparison/product_baseline_comparison.csv để đối chiếu từng sản phẩm với các baseline lịch sử.
 
 Baseline trung bình 28 tuần đạt RMSE 1288.8630, trong khi mô hình được chọn đạt 686.1757. Mức giảm RMSE so với baseline này là 46.76%.
 
@@ -92,3 +92,15 @@ Baseline trung bình 28 tuần đạt RMSE 1288.8630, trong khi mô hình đư�
 
 Điểm chọn cấu hình là selection_rmse, trung bình RMSE của ba cửa sổ train mở rộng và validation cuối. Cấu hình được chốt trước khi đánh giá test.
 **random_forest** có RMSE thấp nhất trên test trong bảng này. **gradient_boosting** là mô hình được chọn từ validation và dùng mặc định để dự đoán. Thứ hạng test được dùng để mô tả kết quả, không dùng để thay đổi mô hình đã chọn.
+
+## Biểu đồ khảo sát và lựa chọn
+
+![Doanh thu theo tuần](figures/eda/daily_sales.png)
+
+![Phân bố mục tiêu train](figures/eda/eda_sales_distribution.png)
+
+![Chia train/validation/test](figures/preprocessing/chronological_split.png)
+
+![Điểm chọn cấu hình](figures/tuning/tuning_selection.png)
+
+![RMSE theo sản phẩm](figures/comparison/product_rmse_comparison.png)
