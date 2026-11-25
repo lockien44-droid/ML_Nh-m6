@@ -14,7 +14,7 @@
 - **Part 1:** phân cụm 200 khách hàng của Mall_Customers.csv dựa trên sự tương đồng, xác định và mô tả các phân khúc khác biệt.
 - **Part 2:** phân đoạn ảnh bằng cách gom các pixel có màu gần nhau và thay mỗi pixel bằng màu tâm cụm. Đây là phân cụm màu, không phải nhận diện vật thể.
 
-Cả hai phần dùng K-Means NumPy tự cài trong [algorithms/kmeans.py](algorithms/kmeans.py). Không phụ thuộc scikit-learn. OpenCV dùng chuyển đổi không gian màu.
+Cả hai phần dùng K-Means NumPy tự cài trong [algorithms/kmeans.py](algorithms/kmeans.py). Không phụ thuộc scikit-learn. OpenCV dùng đọc, resize, chuyển đổi màu và lưu ảnh.
 
 ## Cài đặt và chạy
 
@@ -148,7 +148,7 @@ runs/customers/<run_id>/
 ### Luồng hoạt động
 
 ```text
-Đọc ảnh, sửa hướng EXIF, chuyển RGB
+Đọc ảnh bằng OpenCV, chuyển BGR → RGB
 → thu nhỏ giữ tỷ lệ
 → chuyển không gian màu theo cấu hình
 → flatten thành N × 3 và chuẩn hóa màu
@@ -165,7 +165,7 @@ Mỗi ảnh được học độc lập; các K được thử độc lập. Th�
 
 | File trong src/part2_image | Hàm/class chính | Chức năng |
 |---|---|---|
-| `preprocessing.py` | `load_image`, `resize_image`, `to_pixels`, `prepare_image` | Đọc ảnh, EXIF/RGB, thu nhỏ, chuyển RGB/HSV/LAB và chuẩn hóa pixel |
+| `preprocessing.py` | `load_image`, `resize_image`, `to_pixels`, `prepare_image` | Đọc ảnh OpenCV, BGR → RGB, thu nhỏ, chuyển RGB/HSV/LAB và chuẩn hóa pixel |
 | `preprocessing.py` | `reconstruct_image` | Reshape vector màu, nhân thang màu, làm tròn, clip, uint8 và chuyển về RGB để hiển thị |
 | `kmeans_scratch.py` | `KMeansScratch` | Kế thừa lõi NumPy trong algorithms/kmeans.py; cung cấp centroids_ ngoài cluster_centers_ |
 | `segment.py` | `segment_image` | Fit K-Means trên pixel ảnh thu nhỏ và thay pixel bằng tâm cụm |
@@ -215,3 +215,5 @@ Không có bước so sánh sklearn. Pipeline ảnh hiện không xuất mô hì
 - [Giải thích tham số](docs/ReadmeForParameters.md)
 - [Cấu hình](config.yaml)
 - [Dữ liệu khách hàng](data/customers/raw/Mall_Customers.csv)
+
+Ảnh trong Part 2 được biểu diễn bằng NumPy array RGB. OpenCV resize bằng INTER_AREA, giữ tỷ lệ. Đọc/ghi dùng imdecode/imencode kết hợp fromfile/tofile để hỗ trợ đường dẫn tiếng Việt trên Windows. Thay cách resize có thể làm kết quả số khác các run dùng PIL trước đây.

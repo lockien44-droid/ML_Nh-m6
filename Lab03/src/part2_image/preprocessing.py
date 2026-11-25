@@ -2,23 +2,37 @@
 from pathlib import Path
 import cv2
 import numpy as np
-from PIL import Image, ImageOps
 
 
 def load_image(path):
     path = Path(path)
     if not path.is_file():
         raise FileNotFoundError(f"Image not found: {path}. Provide --image or edit config.yaml.")
-    with Image.open(path) as source:
-        return ImageOps.exif_transpose(source).convert("RGB")
+    # imdecode + fromfile hỗ trợ đường dẫn tiếng Việt trên Windows.
+    bgr = cv2.imdecode(np.fromfile(path, dtype=np.uint8), cv2.IMREAD_COLOR)
+    if bgr is None:
+        raise ValueError(f"Cannot decode image: {path}")
+    return cv2.cvtColor(bgr, cv2.COLOR_BGR2RGB)
+
+
+def save_image(path, rgb):
+    """Encode RGB as an image file with Unicode-safe paths."""
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    bgr = cv2.cvtColor(rgb, cv2.COLOR_RGB2BGR)
+    success, encoded = cv2.imencode(path.suffix or ".png", bgr)
+    if not success:
+        raise ValueError(f"Cannot encode image: {path}")
+    encoded.tofile(path)
 
 
 def resize_image(image, max_size):
     if not isinstance(max_size, int) or max_size < 1:
         raise ValueError("max_size must be a positive integer.")
-    working = image.copy()
-    working.thumbnail((max_size, max_size), Image.Resampling.LANCZOS)
-    return np.asarray(working)
+    height, width = image.shape[:2]
+    scale = min(1.0, max_size / max(height, width))
+    size = (max(1, round(width * scale)), max(1, round(height * scale)))
+    return cv2.resize(image, size, interpolation=cv2.INTER_AREA)
 
 
 def to_pixels(array, colorspace="RGB"):
@@ -49,7 +63,7 @@ def prepare_image(path, max_size, output=None, colorspace="RGB"):
     X = to_pixels(array, colorspace)
     if output is not None:
         output.mkdir(parents=True, exist_ok=True)
-        original.save(output / "original.png")
-        Image.fromarray(array).save(output / "resized.png")
+        save_image(output / "original.png", original)
+        save_image(output / "resized.png", array)
         np.savez_compressed(output / "pixels.npz", X=X, shape=np.array(array.shape))
     return X, array, original

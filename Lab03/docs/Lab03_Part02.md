@@ -21,24 +21,15 @@ Mã tại [preprocessing.py](../src/part2_image/preprocessing.py):
 
 | Hàm | Xử lý |
 |---|---|
-| `load_image` | Đọc ảnh bằng PIL, sửa hướng EXIF, chuyển về RGB |
+| `load_image` | Đọc bằng OpenCV imdecode, chuyển BGR → RGB |
 | `resize_image` | Thu nhỏ giữ tỷ lệ, cạnh dài không vượt `max_size=192` |
 | `to_pixels` | Chuyển không gian màu theo cấu hình, reshape về `(N, 3)` và chuẩn hóa |
 | `prepare_image` | Gọi các bước trên, trả dữ liệu pixel, ảnh thu nhỏ và ảnh gốc |
 
-Với RGB mặc định:
 
-```python
-X = array.reshape(-1, 3).astype(float) / 255.0
-```
+## 4. Thuật toán
 
-Ví dụ ảnh thu nhỏ `(100, 192, 3)` tạo ra 19.200 mẫu, mỗi mẫu gồm ba giá trị trong [0,1]. Giữ nguyên thứ tự pixel để có thể ghép lại ảnh.
-
-Cấu hình cũng hỗ trợ HSV và LAB. HSV encoded chia từng kênh cho `[179, 255, 255]`; RGB/LAB encoded chia cho `[255, 255, 255]`. Khoảng cách Euclid trong HSV chưa thể hiện đầy đủ tính vòng của hue. Các thực nghiệm mặc định dùng RGB.
-
-## 4. Thuật toán tự cài
-
-[KMeansScratch](../src/part2_image/kmeans_scratch.py) kế thừa lõi [KMeans NumPy tự viết](../algorithms/kmeans.py). Không gọi K-Means của sklearn.
+[KMeansScratch](../src/part2_image/kmeans_scratch.py) kế thừa lõi [KMeans NumPy ](../algorithms/kmeans.py).
 
 Với mỗi K, thuật toán thực hiện:
 
@@ -101,14 +92,7 @@ Cấu hình mặc định:
 | `tol` | 0.0001 |
 | `random_state` | 42 |
 
-Chạy từ thư mục gốc repository:
 
-```powershell
-python -m Lab03.src.pipeline --part 2
-
-# Hoặc dùng ảnh khác
-python -m Lab03.src.pipeline --part 2 --image "E:/du_lieu/anh1.jpg" "E:/du_lieu/anh2.jpg"
-```
 
 Luồng mã: `pipeline.py` → chuẩn bị pixel → `evaluate_segmentation` gọi `segment_image` và tính chỉ số → gán màu cho ảnh gốc → `visualization.py` vẽ và lưu báo cáo.
 
@@ -168,3 +152,7 @@ K-Means chuyển bài toán ảnh thành phân cụm vector màu: pixel là mẫ
 Khi thuyết trình: “Phần 2 sử dụng K-Means tự cài để tìm các màu đại diện trong ảnh. Nhóm học tâm trên ảnh thu nhỏ, sau đó dùng các tâm đó để gán màu cho ảnh gốc. Các K được so sánh bằng hình ảnh và sai số tái tạo màu, không phải độ chính xác phân loại vật thể.”
 
 [Quay lại README Lab03](../README.md)
+
+### Xử lý ảnh bằng OpenCV
+
+Part 2 dùng imdecode để đọc, cvtColor chuyển BGR → RGB, resize với INTER_AREA để thu nhỏ giữ tỷ lệ, và imencode để lưu PNG. Dùng fromfile/tofile hỗ trợ đường dẫn tiếng Việt. Ảnh gốc và ảnh thu nhỏ là NumPy array RGB; thuật toán K-Means vẫn là class tự cài, không dùng cv2.kmeans. Cách resize khác PIL nên chỉ số có thể thay đổi so với run cũ.

@@ -4,10 +4,9 @@ from hashlib import sha256
 import re
 import numpy as np
 import pandas as pd
-from PIL import Image
 from time import perf_counter
 from .segment import segment_full_resolution
-from .preprocessing import prepare_image
+from .preprocessing import prepare_image, save_image
 from .evaluate import evaluate_segmentation
 from .visualization import plot_comparison_grid, plot_inertia
 
@@ -44,7 +43,7 @@ def run_part(run, settings, log):
             started = perf_counter()
             full = segment_full_resolution(original, model, colorspace)
             scores["time_full_resolution"] = perf_counter() - started
-            Image.fromarray(full).save(segmented / f"{stem}_k{k}.png")
+            save_image(segmented / f"{stem}_k{k}.png", full)
             scores.pop("iterations", None)
             rows.append(dict(image=stem, source=str(source), colorspace=colorspace, **scores))
         filename = stem + "_k" + "_".join(str(k) for k in values) + ".png"
@@ -53,7 +52,7 @@ def run_part(run, settings, log):
         report += ["Ảnh đúng kích thước gốc, gán màu bằng tâm cụm học từ ảnh thu nhỏ:", "",
                    *[f"- [K = {k}](segmented/{stem}_k{k}.png)" for k in values], ""]
         metadata.append(dict(source=str(source.resolve()), dataset_sha256=sha256(source.read_bytes()).hexdigest(),
-                             original_size=list(original.size), working_size=[array.shape[1], array.shape[0]],
+                             original_size=[original.shape[1], original.shape[0]], working_size=[array.shape[1], array.shape[0]],
                              pixel_samples=len(X), image_key=stem))
     metrics = pd.DataFrame(rows)
     metrics.to_csv(run / "metrics.csv", index=False)

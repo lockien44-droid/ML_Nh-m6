@@ -7,7 +7,7 @@ from .preprocessing import to_pixels
 
 def segment_full_resolution(original, model, colorspace="RGB", batch_size=32768):
     """Assign original pixels in bounded batches using the learned color centers."""
-    array = np.asarray(original.convert("RGB"))
+    array = np.asarray(original)
     pixels = array.reshape(-1, 3)
     output = np.empty_like(pixels)
     for start in range(0, len(pixels), batch_size):
