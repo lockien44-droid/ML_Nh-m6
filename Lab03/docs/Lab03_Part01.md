@@ -1,4 +1,4 @@
-# Lab03 — Mall Customers
+# Lab03 — Phân cụm khách hàng
 
 ## 1. Mục tiêu và dữ liệu
 
@@ -23,8 +23,6 @@ Dữ liệu `Mall_Customers.csv` gồm 200 khách hàng với tuổi, giới tí
 
 Dữ liệu gồm 200 khách hàng: 112 nữ và 88 nam. Không có dữ liệu thiếu hoặc ID trùng. EDA được tổ chức thành chín biểu đồ, thống kê CSV nằm riêng trong `images/eda/tables/`.
 
-![Tỷ lệ nam và nữ](images/eda/eda_gender_distribution.png)
-
 ![Phân bố tuổi theo giới tính](images/eda/eda_age_by_gender.png)
 
 ![Phân bố và boxplot thu nhập](images/eda/eda_income_by_gender.png)
@@ -35,31 +33,11 @@ Dữ liệu gồm 200 khách hàng: 112 nữ và 88 nam. Không có dữ liệu 
 
 ![Quan hệ giữa ba cặp đặc trưng theo giới tính](images/eda/eda_feature_pairs_by_gender.png)
 
-![Tương quan Pearson](images/eda/eda_correlations.png)
 
-Histogram dùng chung khoảng chia và thang đo giữa nam/nữ; số lượng tuyệt đối chịu ảnh hưởng bởi quy mô nhóm. Boxplot cho biết trung vị, độ phân tán và ngoại lệ. Thu nhập theo nhóm tuổi là trung bình mô tả, cần xem số khách mỗi nhóm trong CSV. Màu scatter biểu diễn giới tính, không phải nhãn cụm. Heatmap chỉ đo quan hệ tuyến tính, không chứng minh nhân quả. Gender hiện dùng mô tả dữ liệu, chưa tham gia tính khoảng cách K-Means.
-
-### Quan hệ giữa các biến theo tài liệu tham khảo
-
-![Tuổi và chi tiêu kèm phân bố hai trục](images/eda/eda_age_spending_joint.png)
-
-Biểu đồ ghép scatter, đường hồi quy tuyến tính mô tả và histogram biên. Hệ số Pearson được tính trên các cặp quan sát hợp lệ. Đường xu hướng không phải mô hình dự đoán đã được đánh giá; hình dùng histogram biên, không dùng lớp KDE như bản tham khảo.
-
-![Tuổi và thu nhập theo giới tính](images/eda/eda_age_income_regression.png)
-
-Mỗi nhóm có một đường xu hướng và hệ số Pearson riêng, tính lại từ CSV hiện tại. Không diễn giải tương quan thành quan hệ nhân quả.
-
-Để sinh lại toàn bộ hình EDA và bảng thống kê mà không huấn luyện:
-
-```powershell
-python -m Lab03.src.part1_customers.eda
-```
-
-Hình lưu trong `docs/images/eda/`, CSV lưu trong `docs/images/eda/tables/`. Pipeline Part 1 gọi cùng hàm `analyze` để xuất bộ hình này vào `runs/customers/<run_id>/figures/eda/`.
 
 ## 3. Phạm vi và chuẩn hóa
 
-Kiểm tra tuổi trong 1–100, thu nhập dương và điểm trong 1–100. Cả 200 dòng hợp lệ, không cần lọc bỏ. Chuẩn hóa z-score với ddof=0 trên toàn bộ mẫu để phân cụm mô tả. Đây là đánh giá nội bộ, không phải dự báo train/test.
+Kiểm tra tuổi trong 1–100, thu nhập dương và điểm trong 1–100. Cả 200 dòng hợp lệ, không cần lọc bỏ. Chuẩn hóa z-score với ddof=0 trên toàn bộ mẫu để phân cụm mô tả.
 
 ![So sánh trước và sau chuẩn hóa](images/preprocessing/feature_scaling.png)
 

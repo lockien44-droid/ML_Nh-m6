@@ -9,138 +9,209 @@
 - Phạm Minh Tiến
 - Võ Thị Anh Tú
 
-## Hai phần thực hành
+## Mục tiêu
 
-Phần 1 dùng Mall_Customers.csv để phân cụm 200 khách hàng theo Age, Annual Income (k$) và Spending Score (1-100). Gender dùng mô tả nhóm. K được chọn bằng Silhouette, inertia hỗ trợ Elbow và ARI kiểm tra độ ổn định theo seed.
+- **Part 1:** phân cụm 200 khách hàng của Mall_Customers.csv dựa trên sự tương đồng, xác định và mô tả các phân khúc khác biệt.
+- **Part 2:** phân đoạn ảnh bằng cách gom các pixel có màu gần nhau và thay mỗi pixel bằng màu tâm cụm. Đây là phân cụm màu, không phải nhận diện vật thể.
 
-Phần 2 nhận một ảnh, thu nhỏ giữ tỷ lệ và gom các pixel RGB thành K nhóm màu bằng cùng K-Means tự cài NumPy. Ảnh phân đoạn thay màu mỗi pixel bằng màu tâm cụm. Có thể thử nhiều K trên cùng ảnh.
-
-## Cấu trúc
-
-```text
-Lab03/
-├── config.yaml
-├── algorithms/
-│   └── kmeans.py
-├── data/
-│   ├── customers/
-│   │   ├── raw/
-│   │   └── processed/
-│   └── images/raw/
-├── src/
-│   ├── config.py             Đường dẫn và cấu hình mặc định
-│   ├── utils.py              JSON, hình ảnh, run_id và trạng thái
-│   ├── part1_customers/
-│   │   ├── eda.py
-│   │   ├── preprocessing.py
-│   │   ├── tuning.py
-│   │   ├── train.py
-│   │   ├── evaluate.py
-│   │   ├── analysis.py
-│   │   ├── visualization.py
-│   │   └── pipeline.py
-│   ├── part2_image/
-│   │   ├── kmeans_scratch.py
-│   │   ├── preprocessing.py
-│   │   ├── segment.py
-│   │   ├── evaluate.py
-│   │   ├── visualization.py
-│   │   └── pipeline.py
-│   └── pipeline.py
-├── runs/
-│   ├── customers/<run_id>/
-│   │   ├── config_used.json
-│   │   ├── run.json
-│   │   ├── preprocessing/
-│   │   ├── models/             kmeans.joblib, scaler.joblib
-│   │   ├── tuning/             metrics_by_k.csv, selection.json
-│   │   ├── results/            customers_labeled.csv, cluster_profile.csv
-│   │   ├── figures/
-│   │   └── report.md
-│   └── image/<run_id>/
-│       ├── config_used.json
-│       ├── run.json
-│       ├── metrics.csv
-│       ├── report.md
-│       └── figures/            <ảnh>_k2_4_8_16.png, inertia_vs_k.png
-├── notebooks/
-│   ├── 01_customer_clustering.ipynb
-│   └── 02_image_segmentation.ipynb
-└── docs/
-```
-
-src chỉ chứa pipeline tổng, __init__.py và hai thư mục chức năng. Các file phân tích, huấn luyện, đánh giá khách hàng nằm trong part1_customers. Phần ảnh nằm trong part2_image và dùng chung thuật toán trong algorithms. Các lượt lịch sử trong results/runs giữ bố cục cũ để đối chiếu báo cáo.
+Cả hai phần dùng K-Means NumPy tự cài trong [algorithms/kmeans.py](algorithms/kmeans.py). Không phụ thuộc scikit-learn. OpenCV dùng chuyển đổi không gian màu.
 
 ## Cài đặt và chạy
 
-Chạy tại thư mục gốc repository:
+Chạy từ thư mục gốc repository, chọn môi trường Python đã cài các thư viện:
 
 ```powershell
 python -m pip install -r Lab03/requirements.txt
 
-# Phần 1, cũng là mặc định của lệnh cũ
+# Part 1 — mặc định nếu không có --part
 python -m Lab03.src.pipeline
-python -m Lab03.src.part1_customers.pipeline
-
-# Phần 2, thay đường dẫn bằng ảnh thật
-python -m Lab03.src.part2_image.pipeline --image "E:/du_lieu/landscape.jpg"
-
-# Cả hai phần trong một lượt
-python -m Lab03.src.pipeline --part all --image "E:/du_lieu/landscape.jpg"
-```
-
-Pipeline tổng nhận --part 1, --part 2 hoặc --part all. --config nhận một YAML theo schema config.yaml. Đường dẫn dữ liệu trong cấu hình tương đối với Lab03, còn --image tương đối với thư mục terminal hiện tại. Nếu bỏ --image, phần ảnh đọc image.path trong config.yaml qua image.paths. Đặt ảnh thật vào data/images/raw/input.jpg hoặc thay đường dẫn trước khi chạy phần 2.
-
-## Cấu hình và kết quả
-
-config.yaml có hai nhóm customers và image. Nhóm customers giữ dải K=2–10, n_init=20 và kiểm tra 10 seed. Kết quả kiểm chứng sau chuyển cấu trúc vẫn chọn K=6, Silhouette 0,4274, inertia 133,8683.
-
-Nhóm image mặc định thử K=2,4,8,16, max_size=192, n_init=3 và colorspace=RGB. Các màu chuẩn hóa về [0,1] khi fit. rgb_mse và rgb_rmse báo sai số màu theo thang RGB 0–255. Chúng đo tái tạo màu, chưa đo độ đúng theo nhãn vật thể. Nếu K lớn hơn số màu khác nhau của ảnh sau resize, chương trình báo lỗi để chọn K phù hợp.
-
-Mỗi phần lưu cấu hình thực tế config_used.json, hash nguồn và trạng thái trong run.json. Chạy --part all tạo hai lượt riêng, một dưới runs/customers và một dưới runs/image. Mô hình khách hàng lưu kmeans.joblib. scaler.joblib chứa danh sách đặc trưng cùng mảng mean/scale để tái tạo chuẩn hóa.
-
-Phần ảnh chỉ sử dụng K-Means NumPy tự cài. Mỗi hình gồm ảnh gốc và kết quả K=2,4,8,16 trên một hàng; metrics.csv lưu inertia, RGB MSE/RMSE, số vòng và thời gian chạy.
-
-## Tài liệu
-
-- [Báo cáo khách hàng](docs/Lab03_Report.md)
-- [Bài bổ sung phân đoạn ảnh](docs/Image_Segmentation_Report.md)
-- [Tham số](docs/ReadmeForParameters.md)
-- [Notebook khách hàng](notebooks/01_customer_clustering.ipynb)
-- [Notebook ảnh](notebooks/02_image_segmentation.ipynb)
-- [Dữ liệu khách hàng](data/customers/raw/Mall_Customers.csv)
-
-
-## Chạy nhiều ảnh
-
-```powershell
-python -m Lab03.src.part2_image.pipeline --image "E:/du_lieu/photo_seascape.jpg" "E:/du_lieu/painting_beach_palm.jpg"
-```
-
-Phần ảnh chỉ sử dụng K-Means NumPy tự cài. Mỗi hình gồm ảnh gốc và kết quả K=2,4,8,16 trên một hàng; metrics.csv lưu inertia, RGB MSE/RMSE, số vòng và thời gian chạy.
-
-
-## Chạy theo nhiệm vụ của phần khách hàng
-
-```powershell
 python -m Lab03.src.pipeline --part 1
 
-# Đánh giá lại lượt đã có mô hình, thay RUN_ID bằng mã thật
+# Part 2 — hai ảnh có sẵn trong config.yaml
+python -m Lab03.src.pipeline --part 2
+
+# Chạy cả hai phần, tạo hai run riêng
+python -m Lab03.src.pipeline --part all
+
+# Dùng ảnh khác hoặc nhiều ảnh
+python -m Lab03.src.pipeline --part 2 --image "E:/du_lieu/anh1.jpg" "E:/du_lieu/anh2.jpg"
+
+# Chỉ vẽ EDA khách hàng, không tuning/huấn luyện
+python -m Lab03.src.part1_customers.eda
+
+# Đánh giá lại mô hình khách hàng đã lưu; thay RUN_ID bằng mã thực tế
 python -m Lab03.src.part1_customers.evaluate --run-id RUN_ID
 ```
 
-tuning.py, train.py và evaluate.py có điểm chạy riêng theo --run-id. Tuning cần dữ liệu đã chuẩn bị trong lượt. Train đọc tuning/selection.json để fit cấu hình đã chọn. Evaluate nạp mô hình và nhãn của dữ liệu đã phân cụm, kiểm tra hash đặc trưng và cấu hình, rồi xuất lại các chỉ số và hình. Đánh giá lại sử dụng cùng tập khách hàng đã phân cụm, chưa phải kiểm định trên khách hàng mới.
+`--config` nhận đường dẫn YAML theo cấu trúc [config.yaml](config.yaml). Đường dẫn trong cấu hình tương đối với `Lab03/`; đường dẫn `--image` tương đối với terminal hiện tại. Khi không truyền `--image`, đọc `image.paths`, mặc định là `draw_beach.jpg` và `photo_flower.jpg` trong `data/images/raw/`.
 
-Muốn thay không gian tham số, chỉnh config.yaml rồi tạo lượt mới. Trường customers.kmeans.algorithms nhận kmeans, dbscan, hierarchical. Mặc định chỉ có kmeans để giữ đối chiếu thực nghiệm cũ. K-Means quét k_values; DBSCAN quét eps_values và min_samples_values; Hierarchical quét k_values và linkages. Tuning chọn Silhouette cao nhất trong các ứng viên có coverage ít nhất min_coverage, mặc định 0,8. Silhouette/DB/CH của DBSCAN loại noise và luôn báo thêm coverage, noise_count.
+## Cấu trúc thư mục
 
-## Chức năng chung và K-Means ảnh
+```text
+Lab03/
+├── README.md
+├── requirements.txt
+├── config.yaml
+├── algorithms/kmeans.py       Class KMeans tự cài bằng NumPy
+├── data/
+│   ├── customers/raw/         CSV gốc
+│   ├── customers/processed/   Dữ liệu khách hàng đã xử lý
+│   └── images/raw/            Ảnh đầu vào
+├── src/
+│   ├── __init__.py
+│   ├── config.py              Đọc cấu hình, đường dẫn, mặc định
+│   ├── utils.py               Tạo run, JSON, lưu hình, trạng thái và log
+│   ├── pipeline.py            Điều phối --part 1 | 2 | all
+│   ├── part1_customers/       Khảo sát, phân cụm và đánh giá khách hàng
+│   └── part2_image/           Xử lý pixel, phân đoạn và đánh giá ảnh
+├── runs/
+│   ├── customers/<run_id>/
+│   └── image/<run_id>/
+├── notebooks/                Demo và giải thích từng bước
+└── docs/
+    ├── Lab03_Report.md
+    ├── Part1_KMeans_5_steps.md
+    └── images/
+        ├── eda/tables/         Hình EDA và CSV thống kê riêng
+        ├── preprocessing/
+        ├── tuning/
+        └── evaluation/
+```
 
-src/config.py đọc config.yaml và bổ sung các mặc định seed, K, eps và kích thước ảnh. src/utils.py tạo runs theo phần, ghi JSON nguyên tử, lưu hình và ghi trạng thái có khóa theo lượt.
+## Thuật toán dùng chung: K-Means
 
-Phần ảnh chỉ sử dụng K-Means NumPy tự cài. Mỗi hình gồm ảnh gốc và kết quả K=2,4,8,16 trên một hàng; metrics.csv lưu inertia, RGB MSE/RMSE, số vòng và thời gian chạy.
+1. Chọn K; một lần `fit` giữ K cố định.
+2. Khởi tạo K tâm bằng k-means++.
+3. Gán mỗi mẫu vào tâm gần nhất theo khoảng cách Euclid bình phương.
+4. Cập nhật mỗi tâm bằng trung bình các vector thành viên; xử lý cụm rỗng.
+5. Lặp gán/cập nhật đến khi `shift <= tol` hoặc đạt `max_iter`.
 
-Phần ảnh hỗ trợ colorspace RGB, HSV hoặc LAB qua image.colorspace. OpenCV dùng để chuyển đổi màu, các kênh được đưa về [0,1] trước khi phân cụm. Với HSV, khoảng cách Euclid chưa biểu diễn đầy đủ tính vòng của hue. RGB MSE/RMSE được tính sau chuyển ảnh tái tạo về RGB, cùng thang 0–255.
+`shift = sqrt(sum((updated - centers)**2))` là độ dịch chuyển tổng thể của tất cả tâm. Dừng vì đạt max_iter chưa chắc hội tụ; xem `converged_`. Mỗi K thử `n_init` lần khởi tạo và giữ nghiệm có inertia nhỏ nhất. `fit` học tâm, `predict` gán mẫu vào tâm đã học, không huấn luyện lại.
 
-Lab03 hiện chạy K-Means tự cài, không phụ thuộc scikit-learn. Silhouette, Davies–Bouldin và Calinski–Harabasz được tính bằng NumPy. Các tùy chọn DBSCAN/Hierarchical trước đây đã bỏ khỏi luồng chạy.
+## Part 1 — Phân cụm khách hàng
 
-[Tài liệu Part 1 theo 5 bước K-Means](docs/Part1_KMeans_5_steps.md).
+### Dữ liệu, chuẩn hóa và chọn K
+
+Mỗi khách hàng có ba đặc trưng dùng cho khoảng cách: `Age`, `Annual Income (k$)`, `Spending Score (1-100)`. `CustomerID` dùng đối chiếu; `Gender` dùng EDA và mô tả cơ cấu từng cụm.
+
+Standardize bằng z-score từng cột: `(x - mean) / std`, `ddof=0`. Trung bình sau chuẩn hóa gần 0, độ lệch chuẩn gần 1; không giới hạn trong [0,1]. Phân cụm mô tả toàn bộ khách hàng, không đánh giá dự báo trên tập test.
+
+Mặc định thử K=2…10, n_init=20, max_iter=300, tol=0.0001, random_state=42. Tuning tự chọn K theo Silhouette cao nhất trong các cấu hình hợp lệ đáp ứng coverage. Inertia phục vụ quan sát Elbow; Elbow chưa tự chọn K. Davies–Bouldin (thấp hơn tốt hơn) và Calinski–Harabasz (cao hơn tốt hơn) là đánh giá bổ sung. Không diễn giải Silhouette thành phần trăm chính xác.
+
+Lần chạy tham chiếu chọn K=6, Silhouette khoảng 0.4274 và inertia khoảng 133.8683; đây là kết quả thực nghiệm, không phải giá trị bị gán sẵn. ARI dùng so sánh phân cụm qua nhiều seed sau khi chọn K. Mã hiện chỉ hỗ trợ thuật toán `kmeans`; các trường eps/linkage còn trong cấu hình không kích hoạt DBSCAN/Hierarchical.
+
+### Chức năng các file Part 1
+
+| File trong src/part1_customers | Chức năng |
+|---|---|
+| `eda.py` | Thống kê thiếu dữ liệu/ngoại lệ, phân phối theo giới tính, quan hệ và tương quan; sinh 9 hình EDA |
+| `preprocessing.py` | Kiểm tra dữ liệu, chọn ba cột số, z-score, lưu dữ liệu và scaler |
+| `tuning.py` | Thử K, tính chỉ số và lưu selection.json; không tự chọn đặc trưng |
+| `train.py` | Fit cấu hình đã chọn, lưu mô hình và thông tin huấn luyện |
+| `evaluate.py` | Nạp mô hình đã lưu, đánh giá dữ liệu đã phân cụm, xuất nhãn/hồ sơ cụm |
+| `analysis.py` | Diễn giải các nhóm, thống kê giới tính, kiểm tra độ ổn định qua seed |
+| `visualization.py` | Biểu đồ Silhouette/Elbow, phân cụm 2D/3D và Silhouette từng khách |
+| `pipeline.py` | EDA → chuẩn hóa → tuning → train → evaluate → kiểm tra seed |
+
+`tuning.py`, `train.py`, `evaluate.py` có lệnh riêng nhận `--run-id`. Tuning cần dữ liệu đã chuẩn bị; muốn tuning lại sau khi đã lưu mô hình phải tạo run mới. Đánh giá lại kiểm tra hash dữ liệu và cấu hình trước khi xuất kết quả.
+
+### Đầu ra Part 1
+
+```text
+runs/customers/<run_id>/
+├── config_used.json
+├── run.json, events.jsonl
+├── preprocessing/             CSV sạch, chuẩn hóa, tham số scale
+├── models/                    scaler.joblib, kmeans.joblib, clustering.joblib,
+│                              labels.npy, training.json
+├── tuning/                    metrics_by_k.csv, selection.json, so sánh K
+├── results/
+│   ├── customers_labeled.csv  Mỗi khách hàng kèm nhãn cụm
+│   ├── cluster_profile.csv    Số khách, trung bình, tên nhóm, gợi ý tiếp thị
+│   ├── gender_by_cluster.csv  Số lượng/tỷ lệ giới tính mỗi cụm
+│   ├── metrics.csv            Chỉ số phân cụm cuối
+│   ├── seed_stability.csv     Kết quả theo seed
+│   └── pairwise_ari.csv       ARI giữa từng cặp seed
+├── figures/
+│   ├── eda/                   9 hình EDA; CSV trong eda/tables/
+│   ├── silhouette_by_k.png    Silhouette và Elbow
+│   ├── silhouette_clusters.png
+│   ├── income_spending.png
+│   └── customer_clusters_3d.html
+└── report.md
+```
+
+`marketing_hypothesis` là gợi ý sau phân cụm, không phải nhãn cụm hoặc điều K-Means tự học. Số khách mỗi cụm không bắt buộc bằng nhau. EDA chạy riêng mặc định lưu hình tại `docs/images/eda/`; khi chạy pipeline lưu tại `figures/eda/` của run mới. Các run cũ không tự được cập nhật.
+
+## Part 2 — Phân đoạn ảnh
+
+### Luồng hoạt động
+
+```text
+Đọc ảnh, sửa hướng EXIF, chuyển RGB
+→ thu nhỏ giữ tỷ lệ
+→ chuyển không gian màu theo cấu hình
+→ flatten thành N × 3 và chuẩn hóa màu
+→ fit KMeansScratch cho từng K
+→ thay màu pixel bằng màu tâm và tái tạo ảnh thu nhỏ
+→ tính chỉ số, vẽ hình
+→ dùng tâm đã học gán cụm cho pixel ảnh gốc theo từng lô
+→ thay màu và reshape về kích thước ảnh gốc, lưu PNG
+```
+
+Mỗi ảnh được học độc lập; các K được thử độc lập. Thứ tự pixel được giữ nguyên khi flatten, nên reshape khôi phục đúng vị trí. Mô hình học các tâm màu, không học nhãn hoa/cây/biển.
+
+### Chức năng các file Part 2
+
+| File trong src/part2_image | Hàm/class chính | Chức năng |
+|---|---|---|
+| `preprocessing.py` | `load_image`, `resize_image`, `to_pixels`, `prepare_image` | Đọc ảnh, EXIF/RGB, thu nhỏ, chuyển RGB/HSV/LAB và chuẩn hóa pixel |
+| `preprocessing.py` | `reconstruct_image` | Reshape vector màu, nhân thang màu, làm tròn, clip, uint8 và chuyển về RGB để hiển thị |
+| `kmeans_scratch.py` | `KMeansScratch` | Kế thừa lõi NumPy trong algorithms/kmeans.py; cung cấp centroids_ ngoài cluster_centers_ |
+| `segment.py` | `segment_image` | Fit K-Means trên pixel ảnh thu nhỏ và thay pixel bằng tâm cụm |
+| `segment.py` | `segment_full_resolution` | Predict từng lô pixel ảnh gốc bằng tâm đã học; không fit lại |
+| `evaluate.py` | `evaluate_image`, `evaluate_segmentation` | Inertia, RGB MSE/RMSE, dân số cụm, số vòng, hội tụ, thời gian fit/tái tạo |
+| `visualization.py` | `plot_comparison_grid`, `plot_inertia` | Ảnh gốc cạnh kết quả từng K, đồ thị inertia theo K |
+| `pipeline.py` | `run_part`, `main` | Chạy các ảnh/các K, lưu ảnh kích thước gốc, bảng chỉ số và báo cáo |
+| `__init__.py` | — | Đánh dấu package Python |
+
+### Cấu hình và cách đọc kết quả
+
+Mặc định K=2,4,8,16, max_size=192, n_init=3, max_iter=100, tol=0.0001, seed=42, colorspace=RGB. Không tự động chọn K tốt nhất. K nhỏ tạo ít màu, mất chi tiết; K lớn thường giữ nhiều sắc độ và tốn tính toán hơn. K vượt số màu khác nhau sau thu nhỏ sẽ báo lỗi.
+
+RGB và LAB encoded chia các kênh cho 255; HSV encoded chia cho [179,255,255]. HSV dùng Euclid nên chưa phản ánh đầy đủ tính vòng của hue. `reconstruct_image` hoàn nguyên thang màu và chuyển HSV/LAB về RGB; hàm này không huấn luyện.
+
+Inertia tính trên không gian màu chuẩn hóa. RGB MSE/RMSE tính giữa ảnh thu nhỏ và ảnh tái tạo ở thang RGB 0–255, không phải độ chính xác nhận diện vật thể. Chỉ so inertia giữa các K khi cùng ảnh, kích thước và không gian màu. `time_scratch` gồm fit và tái tạo ảnh thu nhỏ; `time_full_resolution` là thời gian gán màu cho ảnh gốc. Toàn bộ pixel ảnh gốc dùng cùng tâm đã học từ ảnh thu nhỏ, không phải học lại trên toàn ảnh.
+
+### Đầu ra Part 2
+
+```text
+runs/image/<run_id>/
+├── config_used.json
+├── run.json, events.jsonl      Cấu hình nguồn, hash ảnh, kích thước, trạng thái
+├── metrics.csv                image, k, colorspace, inertia, rgb_mse, rgb_rmse,
+│                              n_iter, converged, observed_clusters,
+│                              time_scratch, time_full_resolution, source
+├── segmented/                 <ảnh>_k2.png, ..._k4.png, ..._k8.png, ..._k16.png
+│                              Ảnh phân đoạn đúng kích thước nguồn
+├── figures/
+│   ├── <ảnh>_k2_4_8_16.png     Ảnh gốc thu nhỏ cạnh các kết quả K, một hàng
+│   └── inertia_vs_k.png
+└── report.md
+```
+
+Không có bước so sánh sklearn. Pipeline ảnh hiện không xuất mô hình joblib hay nhãn pixel riêng; xuất ảnh và chỉ số của từng cấu hình. Hai ảnh cùng tên ở các thư mục khác nhau được thêm mã phân biệt.
+
+## Notebook để thuyết trình và demo
+
+- [Part 1: phân cụm khách hàng](notebooks/01_customer_clustering.ipynb): EDA, chuẩn hóa, giải thích 5 bước, chọn K, train, đánh giá, hồ sơ cụm, demo khách hàng mới. Run All tạo run mới. Kiểm tra seed mặc định tắt để demo nhanh; bật RUN_STABILITY nếu cần. Khách mới dùng đúng scaler/thứ tự cột rồi predict, không fit lại.
+- [Part 2: phân đoạn ảnh](notebooks/02_image_segmentation.ipynb): giải thích pixel, học/tái tạo màu, che cụm, thử nhiều K và xuất ảnh. Kết quả notebook được trình bày ngay trong cell; ảnh xuất riêng ở notebook_exports.
+
+## Tài liệu và dữ liệu
+
+- [Báo cáo Part 1](docs/Lab03_Report.md)
+- [Part 2: phân đoạn ảnh — 8 phần](docs/Image_Segmentation_Report.md)
+- [Part 1 theo 5 bước K-Means](docs/Part1_KMeans_5_steps.md)
+- [Giải thích tham số](docs/ReadmeForParameters.md)
+- [Cấu hình](config.yaml)
+- [Dữ liệu khách hàng](data/customers/raw/Mall_Customers.csv)

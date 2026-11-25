@@ -32,18 +32,24 @@ class KMeans:
         return np.asarray(centers)
 
     def fit(self, X):
+        # Chuẩn bị: X là ma trận (số mẫu, số đặc trưng), đã chuẩn hóa ở preprocessing.
         X = np.asarray(X, dtype=float)
         if X.ndim != 2 or not X.size or not np.isfinite(X).all():
             raise ValueError("X must be a finite nonempty matrix.")
         if len(np.unique(X, axis=0)) < self.n_clusters:
             raise ValueError("K exceeds the number of distinct samples.")
+        # Bước 1 — K đã được truyền qua n_clusters; fit không tự chọn K.
         rng = np.random.default_rng(self.random_state)
         best_inertia = np.inf
+        # Lặp n_init lần khởi tạo độc lập, giữ nghiệm có inertia nhỏ nhất cho cùng K.
         for _ in range(self.n_init):
+            # Bước 2 — Khởi tạo K tâm bằng k-means++.
             centers = self._initialize(X, rng)
             for iteration in range(1, self.max_iter + 1):
+                # Bước 3 — Gán mỗi mẫu vào tâm gần nhất.
                 distances = self._distances(X, centers)
                 labels = distances.argmin(axis=1)
+                # Bước 4 — Tâm mới là trung bình vector của các thành viên trong cụm.
                 updated = centers.copy()
                 nearest = distances.min(axis=1)
                 for cluster in range(self.n_clusters):
@@ -51,23 +57,29 @@ class KMeans:
                     if len(members):
                         updated[cluster] = members.mean(axis=0)
                     else:
-                        # Move an empty center to the currently worst represented point.
+                        # Cụm rỗng: đưa tâm đến điểm xa tâm gần nhất nhất hiện tại.
                         index = nearest.argmax()
                         updated[cluster] = X[index]
+                        # Tránh chọn lại điểm này cho cụm rỗng tiếp theo trong cùng vòng.
                         nearest[index] = -1
+                # Bước 5 — Kiểm tra hội tụ bằng độ dịch chuyển tổng thể của tất cả tâm.
                 shift = np.sqrt(np.sum((updated - centers) ** 2))
                 centers = updated
+                # Nếu chưa đạt tol, lặp lại bước 3–4; tối đa max_iter vòng.
                 if shift <= self.tol:
                     break
             distances = self._distances(X, centers)
             labels = distances.argmin(axis=1)
             inertia = float(distances[np.arange(len(X)), labels].sum())
+            # Lưu các thuộc tính của nghiệm tốt nhất trong n_init lần.
             if inertia < best_inertia:
                 best_inertia = inertia
                 self.cluster_centers_ = centers.copy()
                 self.labels_ = labels.copy()
                 self.inertia_, self.n_iter_ = inertia, iteration
+                # Hết max_iter mà shift > tol thì vẫn dừng, nhưng converged_ = False.
                 self.converged_ = shift <= self.tol
+        # Lưu số đặc trưng để kiểm tra đầu vào predict; trả self để gọi nối tiếp.
         self.n_features_in_ = X.shape[1]
         return self
 
