@@ -9,8 +9,8 @@ import torch
 from torch import nn
 from torch.utils.data import DataLoader, TensorDataset
 
-from src.model import MLP
-
+from .model import MLP
+from .evaluate import predict
 
 def fit_mlp(X, y, V, actual, params, seed):
     """
@@ -74,8 +74,8 @@ def fit_mlp(X, y, V, actual, params, seed):
             optimizer.step()                    # Adam cập nhật trọng số
 
         # 8. Tính dự đoán trên train và validation sau epoch này
-        predicted_train = model.predict(X)
-        predicted_val = model.predict(V)
+        predicted_train = predict(model, X)
+        predicted_val = predict(model, V)
 
         # 9. Tính lỗi trên validation
         val_mse = float(np.mean((predicted_val - actual) ** 2))

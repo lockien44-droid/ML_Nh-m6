@@ -1,4 +1,5 @@
 """Choose all configurations using validation only; keep fitted winners."""
+from .evaluate import predict
 from time import perf_counter
 import pandas as pd
 from sklearn.linear_model import LinearRegression
@@ -26,7 +27,13 @@ def select_models(arrays, config, directory):
                 kwargs = {} if name == 'linear_regression' else dict(random_state=config['seed'])
                 model = cls(**params, **kwargs).fit(X, y)
             seconds = perf_counter() - started
-            result = metrics(actual, model.predict(V))
+
+            if name == 'mlp':
+                 predicted = predict(model, V)
+            else:
+                predicted = model.predict(V)
+
+            result = metrics(actual, predicted)
             rows.append(dict(model=name, candidate=index, fit_seconds=seconds, **result))
             if result['mse'] < best:
                 best = result['mse']

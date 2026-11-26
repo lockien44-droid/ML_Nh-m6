@@ -1,4 +1,5 @@
 """Run the Lab04 experiment: python -m Lab04.src.pipeline."""
+from .evaluate import predict
 import argparse
 from pathlib import Path
 from datetime import datetime, timedelta, timezone
@@ -71,7 +72,10 @@ def run_pipeline(csv_path=None, config_path=None, output_root=None, quick=False)
         X, y = arrays['test']
         rows = []
         for name, model in models.items():
-            predicted = model.predict(X)
+            if name == 'mlp':
+                predicted = predict(model, X)
+            else:
+                predicted = model.predict(X)
             rows.append(dict(model=name, **metrics(y,predicted)))
             pd.DataFrame(dict(row_id=frames['test'].row_id.to_numpy(),actual=y,predicted=predicted,residual=y-predicted)).to_csv(evaluation / f'{name}_predictions.csv',index=False)
         # A training-mean predictor provides an interpretable naive reference.
