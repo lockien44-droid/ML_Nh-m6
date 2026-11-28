@@ -102,3 +102,6 @@ python -m unittest discover -s Lab04/tests -v
 MLP được chọn có kiến trúc 8 → 64 → ReLU → 32 → ReLU → 1, checkpoint epoch 79. RMSE test MLP là 0,52982 và Random Forest là 0,51493, theo đơn vị 100.000 USD.
 
 ![So sánh kết quả test của lượt tham chiếu](docs/images/metrics_comparison.png)
+
+
+minhh
